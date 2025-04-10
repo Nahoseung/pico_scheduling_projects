@@ -25,8 +25,8 @@ add_library(FreeRTOS-Kernel STATIC
 
     ${PICO_SDK_PATH}/src/common/pico_sync/mutex.c
     ${PICO_SDK_PATH}/src/rp2_common/pico_multicore/multicore.c
-    
 
+    task_manager.c
 )
 
 target_compile_definitions(FreeRTOS-Kernel PUBLIC
