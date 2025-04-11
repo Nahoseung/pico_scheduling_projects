@@ -22,15 +22,18 @@ typedef struct
     uint16_t Runtime;
     TickType_t Period;
     UBaseType_t Core_Affinity;
+    uint8_t priority;
+
 /************NOT YET**************/
-    TaskHandle_t my_ptr;
-    TaskHandle_t splitted_ptr;
-    bool Dependency;
+
+    // TaskHandle_t my_ptr;
+    // TaskHandle_t splitted_ptr;
+    // bool Dependency;
 }task_manager;
 
 
 void init(task_manager* manager);
-bool Periodic_Job(uint16_t Runtime,uint16_t Deadline);
+bool Periodic_Job(uint16_t Runtime, uint16_t Deadline);
 
 /************NOT YET**************/
 void SPA2();

@@ -30,9 +30,9 @@ bool Periodic_Job(uint16_t Runtime,uint16_t Deadline)
 
 void init(task_manager manager[])
 {
-    for(int i=0; i<NUM_OF_TASK; i++)
+    for(int i=0; i<MAX_NUM_TASKS; i++)
     {
-        xTaskCreateAffinitySet(manager[i].Task_Code,manager[i].Task_Name,STACK_SIZE,NULL,i+1,manager[i].Core_Affinity,NULL);
+        xTaskCreateAffinitySet(manager[i].Task_Code,manager[i].Task_Name,STACK_SIZE,NULL,manager[i].priority,manager[i].Core_Affinity,NULL);
     }
 }
 

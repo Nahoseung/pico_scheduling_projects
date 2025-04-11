@@ -6,21 +6,28 @@
 #include "pico/stdlib.h"
 
 #define HARD 0
-#define BusyWaitting 0
+#define BusyWaitting 1
+#define sync_R 10
+
 void vTask0(void* pvParameters);
 void vTask1(void* pvParameters);
+void vTask2(void* pvParameters);
 
+#if BusyWaitting
+bool Task0_end = false;
+#endif
 TaskHandle_t pTask0 = NULL;
 TaskHandle_t pTask1 = NULL;
 
 TaskHandle_t ptr_pool[MAX_NUM_TASKS];
+
 task_manager manager [MAX_NUM_TASKS] ={
 
         /* Code /  Name  / Run / Period / Core Affinity / my_ptr / splitted_ptr / Dependency */
 
-         {vTask0,"TASK0",  10, 200, Core0}, // TASK 0
-         {vTask1,"TASK1",  40, 100, Core1}, // TASK 1
-         {NULL,}
+         {vTask0,"TASK0",  40, 100, Core0,2}, // TASK 0
+         {vTask1,"TASK1",  40, 100, Core1,2}, // TASK 1
+         {vTask2,"TASK2",  20, 100, Core1,1}  // TASK 2
 
 };
 
@@ -29,6 +36,7 @@ task_manager manager [MAX_NUM_TASKS] ={
 void vTask0(void *pvParameters) 
 { 
     /****** Tick (10ms) 기준 Runtime, Period 부여 ******/
+
     static const uint8_t priority = 0;
 
     #if(HARD)
@@ -40,15 +48,21 @@ void vTask0(void *pvParameters)
     const char* Task_name = manager[priority].Task_Name;
     #endif
 
-    printf("%s (%d , %d)  \n",Task_name,Run_tick,Period_tick);
+    printf("%s (%d , %d)  \n", Task_name, Run_tick, Period_tick);
 
     TickType_t Deadline;
     TickType_t LastRequestTime;
-
+    
     LastRequestTime = xTaskGetTickCount();
+
+    vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick
 
     while (true) 
     {
+        #if BusyWaitting
+        Task0_end = false;
+        #endif
+
         Deadline = LastRequestTime + Period_tick; // 최신 요청 기준 Deadline 업데이트
 
         /*******************************************************************************************************/
@@ -77,11 +91,15 @@ void vTask0(void *pvParameters)
             return ;
         }
 
-
         #else
         printf("%d : %s execute on Core %d Deadline : %d \n", xTaskGetTickCount(), Task_name,get_core_num(),Deadline);
         Periodic_Job(Run_tick,Deadline);
         #endif
+
+        #if BusyWaitting
+        Task0_end = true;
+        #endif
+
 
         printf("%d: Complete %s (< %d) \n",xTaskGetTickCount(),Task_name,Deadline);
 
@@ -114,12 +132,20 @@ void vTask1(void *pvParameters)
 
     LastRequestTime = xTaskGetTickCount();
 
+    vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick
+
     while (true) 
     {
+
         Deadline = LastRequestTime + Period_tick; // 최신 요청 기준 Deadline 업데이트
 
         /*******************************************************************************************************/
 
+        #if BusyWaitting
+        
+        while(!Task0_end){sleep_ms(1);};
+        Task0_end = false;
+        #endif
         
         #if(HARD)
         if(xTaskGetTickCount() + Run_tick >= Deadline)
@@ -157,6 +183,74 @@ void vTask1(void *pvParameters)
     }
 }
 
+void vTask2(void *pvParameters) 
+{
+    /****** Tick (10ms) 기준 Runtime, Period 부여 ******/
+    static const uint8_t priority = 2;
+
+    #if(HARD)
+    uint16_t Run_tick= 40;
+    TickType_t Period_tick= 100;
+    #else
+    uint16_t Run_tick = manager[priority].Runtime; // Run_time : 40 tick -> 0.4 sec
+    TickType_t Period_tick = manager[priority].Period; // Period : 100 tick -> 1.0 sec
+    const char* Task_name = manager[priority].Task_Name;
+    #endif
+
+    printf("%s (%d , %d) \n",Task_name,Run_tick,Period_tick);
+
+    
+
+    TickType_t Deadline;
+    TickType_t LastRequestTime;
+
+    LastRequestTime = xTaskGetTickCount();
+
+    vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick
+
+    while (true) 
+    {
+
+        Deadline = LastRequestTime + Period_tick; // 최신 요청 기준 Deadline 업데이트
+
+        /*******************************************************************************************************/
+
+
+        #if(HARD)
+        if(xTaskGetTickCount() + Run_tick >= Deadline)
+        {
+            printf("OVERFLOW \n ");
+            sleep_ms(5000);
+            return ;
+        } 
+        printf("%d : Task 1 execute on Core %d Deadline : %d \n", xTaskGetTickCount(), get_core_num(),Deadline);
+        /********* RUN TASK ********/
+        for(int i=0;i<Run_tick;i++)
+        {
+            // printf("1");
+            sleep_ms(10); // 1 Tick
+        }
+        // printf("| \n");
+        /********* CHECK DEADLINE ********/
+        if(xTaskGetTickCount()> Deadline)
+        {
+            printf("OVERFLOW : MISS DEADLINE\n");
+            sleep_ms(5000);
+            return ;
+        }
+
+        #else
+        printf("%d : %s execute on Core %d Deadline : %d \n", xTaskGetTickCount(), Task_name,get_core_num(),Deadline);
+        Periodic_Job(Run_tick,Deadline);
+        #endif
+
+        printf("%d: Complete %s (< %d) \n",xTaskGetTickCount(),Task_name,Deadline);
+
+        /*******************************************************************************************************/
+        
+        vTaskDelayUntil(&LastRequestTime, Period_tick);  
+    }
+}
 
 
 int main() 
@@ -179,7 +273,7 @@ int main()
      *       vTaskSplit() {}: Runtime 40 -> 20 으로 외부에서 수정 -> Task Manager 도입
      */
 
-    manager[1].Runtime = 20;
+    // manager[1].Runtime = 20;
 
 
     /*
