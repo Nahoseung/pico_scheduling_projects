@@ -6,7 +6,7 @@
 #include "task.h"
 #include <stdio.h>
 #include <stdbool.h>
-#define NUM_OF_TASK 2
+#define NUM_OF_TASK 3
 #define MAX_NUM_TASKS NUM_OF_TASK + configNUMBER_OF_CORES -1 
 #define STACK_SIZE 256
 
@@ -25,25 +25,59 @@ typedef struct
     UBaseType_t Core_Affinity;
     uint8_t priority;
     uint8_t subnum;
+
     TaskHandle_t my_ptr;
     TaskHandle_t splitted_ptr;
+
     bool Dependency;
+
+    float Utilization;
 }task_info;
+
 
 typedef struct 
 {
-    task_info* manager;
-    uint8_t top;
-}administrator;
+    task_info* list [MAX_NUM_TASKS];
+    int top;
+}task_stack;
 
 
-void init_task(administrator* admin);
+typedef struct 
+{
+    UBaseType_t Core_num;
+    float Utilization;
+}core_info;
+
+typedef struct 
+{
+    core_info* list[configNUMBER_OF_CORES];
+    int top;
+}core_stack;
+
+
+
+
+
 bool Periodic_Job(uint16_t Runtime, uint16_t Deadline);
-void init_admin(administrator* admin, task_info* manager);
-bool Task_split(uint8_t Body_idx, administrator* admin);
-
+void init_task(task_stack* admin, task_info task_list[],core_info* p_manager[]);
+void init_admin(task_stack* admin, task_info* manager);
+bool Task_split(uint8_t Body_idx, task_stack* admin, core_info* p_manager[]);
+void Assign_task(TaskHandle_t task_ptr,UBaseType_t Core_num, float Utilization, core_info* p_manager[]);
 /************NOT YET**************/
+
 void SPA2();
+
+void init_task_stack(task_stack* task_stack_ptr);
+bool T_is_full(task_stack* task_stack_ptr);
+bool T_is_empty(task_stack* task_stack_ptr);
+task_info* Pop_task(task_stack* task_stack_ptr);
+void Push_task(task_info* T,task_stack* task_stack_ptr);
+
+void init_core_stack(core_stack* core_stack_ptr);
+bool C_is_full(core_stack* core_stack_ptr);
+bool C_is_empty(core_stack* core_stack_ptr);
+void Push_core(core_info* P, core_stack* core_stack_ptr);
+core_info* Pop_core(core_stack* core_stack_ptr);
 
 
 #endif /*TASK_MANAGER_H*/
