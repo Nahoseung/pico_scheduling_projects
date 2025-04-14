@@ -1,3 +1,6 @@
+###########################################################
+# PC 환경변수 설정 필요 PICO_SDK_PATH , FREERTOS_KERNEL_PATH
+###########################################################
 cmake_minimum_required(VERSION 3.13)
 include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 

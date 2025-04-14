@@ -1,7 +1,6 @@
 #ifndef TASK_MANAGER_H
 #define TASK_MANAGER_H
 
-#define NUM_OF_TASKS 5
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -18,25 +17,33 @@
 typedef struct 
 {
     TaskFunction_t Task_Code;
-    const char* const Task_Name;
+    char*  Task_Name;
+
     uint16_t Runtime;
     TickType_t Period;
+
     UBaseType_t Core_Affinity;
     uint8_t priority;
+    uint8_t subnum;
+    TaskHandle_t my_ptr;
+    TaskHandle_t splitted_ptr;
+    bool Dependency;
+}task_info;
 
-/************NOT YET**************/
+typedef struct 
+{
+    task_info* manager;
+    uint8_t top;
+}administrator;
 
-    // TaskHandle_t my_ptr;
-    // TaskHandle_t splitted_ptr;
-    // bool Dependency;
-}task_manager;
 
-
-void init(task_manager* manager);
+void init_task(administrator* admin);
 bool Periodic_Job(uint16_t Runtime, uint16_t Deadline);
+void init_admin(administrator* admin, task_info* manager);
+bool Task_split(uint8_t Body_idx, administrator* admin);
 
 /************NOT YET**************/
 void SPA2();
-void Task_split();
+
 
 #endif /*TASK_MANAGER_H*/
