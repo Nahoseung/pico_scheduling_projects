@@ -47,6 +47,7 @@ typedef struct
 {
     UBaseType_t Core_num;
     float Utilization;
+    bool pre_assigned;
 }core_info;
 
 typedef struct 
@@ -60,30 +61,42 @@ typedef struct
 
 
 bool Periodic_Job(uint16_t Runtime, uint16_t Deadline);
-void init_task(task_stack* admin, task_info task_list[],core_stack* core_stack_ptr);
-void init_admin(task_stack* admin, task_info* manager);
-bool Task_split(uint8_t Body_idx, task_stack* admin, core_info* p_manager[]);
-void Assign_task(TaskHandle_t task_ptr,UBaseType_t Core_num, float Utilization, core_stack* core_stack_ptr);
-/************NOT YET**************/
 
-void SPA2();
+/************TASK**************/
+float get_Utilization();
+float get_lighttask(float U);
 
 void init_task_stack(task_stack* task_stack_ptr);
+float init_task(task_stack* admin, task_info task_list[],core_stack* core_stack_ptr);
+bool Task_split(uint8_t Body_idx, task_stack* admin);
+void Assign_task(task_info* T,core_info* C, core_stack* core_stack_ptr);
+
 bool T_is_full(task_stack* task_stack_ptr);
 bool T_is_empty(task_stack* task_stack_ptr);
 task_info* Pop_task(task_stack* task_stack_ptr);
 void Push_task(task_info* T,task_stack* task_stack_ptr);
 void Print_task(task_info* T);
+bool simple_test(task_info* T, int num_of_Lower_T ,core_stack* core_stack_ptr,task_stack* task_stack_ptr,float Utilization_Bound);
 
+/************TASK**************/
+
+/************Core**************/
 void init_core_stack(core_stack* core_stack_ptr);
-bool C_is_full(core_stack* core_stack_ptr);
-bool C_is_empty(core_stack* core_stack_ptr);
-void Push_core(core_info* P, core_stack* core_stack_ptr);
-core_info* Pop_core(core_stack* core_stack_ptr);
 void init_core(core_stack* core_stack_ptr, core_info core_list[]);
 
-float get_Utilization();
-float get_lighttask(float U);
+bool C_is_full(core_stack* core_stack_ptr);
+bool C_is_empty(core_stack* core_stack_ptr);
+core_info* Pop_core(core_stack* core_stack_ptr);
+void Push_core(core_info* P, core_stack* core_stack_ptr);
+
+core_info* get_min_core(core_stack* core_stack_ptr);
+/************Core**************/
+
+/************** NOT YET ***************/
+void print_core();
+
+
+
 
 
 #endif /*TASK_MANAGER_H*/

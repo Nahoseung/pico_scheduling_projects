@@ -23,11 +23,32 @@ bool Periodic_Job(uint16_t Runtime, uint16_t Deadline)
     return true;
 }
 
-
-void init_task(task_stack* task_stack_ptr, task_info task_list[],core_stack* core_stack_ptr)
+/***********************TASK***************************/
+float get_Utilization()
 {
+    float n = NUM_OF_TASK;
+    float U = n * (pow(2.0, 1.0 / n) - 1);
+    printf("For %d tasks Utilization Bound is :  %.4f \n",NUM_OF_TASK, U);
+    return U;
+}
+float get_lighttask(float U)
+{
+    float Light_bound = U/(1+U);
+    printf("For %d tasks Light_Bound is :  %.4f \n",NUM_OF_TASK, Light_bound);
+    return Light_bound;
+}
 
+void init_task_stack(task_stack* task_stack_ptr)
+{
+    task_stack_ptr->top = -1; //현재 stack에 들어가 있는 task 위치를 가리킴
+}
+
+float init_task(task_stack* task_stack_ptr, task_info task_list[],core_stack* core_stack_ptr)
+{
+    // * NOT YET : task_list를 period 짧은 순으로 정렬
+    // * sorting(task_list[]);
     init_task_stack(task_stack_ptr);
+
     float U = get_Utilization();
     float Light_bound = get_lighttask(U);
 
@@ -35,24 +56,29 @@ void init_task(task_stack* task_stack_ptr, task_info task_list[],core_stack* cor
     {
         Push_task(&task_list[i], task_stack_ptr);
 
-        task_stack_ptr->list[i]->Utilization = (float) task_stack_ptr->list[i]->Runtime / (float) task_stack_ptr->list[i]->Period;
+        task_info* task = task_stack_ptr->list[i];
+
+        task->Utilization = (float) task->Runtime / (float) task->Period;
 
         // * Check Light or Heavy
-        if(task_stack_ptr->list[i]->Utilization > Light_bound)
+        if(task->Utilization > Light_bound)
         {
-            task_stack_ptr->list[i]->Heavy = true;
+            task->Heavy = true;
         }
 
-        xTaskCreate(task_stack_ptr->list[i]->Task_Code,task_stack_ptr->list[i]->Task_Name,STACK_SIZE,NULL,
-            task_stack_ptr->list[i]->priority,&(task_stack_ptr->list[i]->my_ptr));
+        xTaskCreate(task->Task_Code,task->Task_Name,STACK_SIZE,NULL,
+            task->priority,&(task->my_ptr));
+
         // * Temp : 생성된 Task를 설정된 Core에 할당
-        Assign_task(task_stack_ptr->list[i]->my_ptr, task_stack_ptr->list[i]->Core_Affinity,
-            task_stack_ptr->list[i]->Utilization, core_stack_ptr);
+
+        Assign_task(task, core_stack_ptr->list[(task->Core_Affinity >> 1)],core_stack_ptr);
     }
+
+    return U;
 }
 
 
-bool Task_split(uint8_t Body_idx, task_stack* task_stack_ptr, core_info* p_manager[])
+bool Task_split(uint8_t Body_idx, task_stack* task_stack_ptr)
 {
 
     if( ++ (task_stack_ptr-> top) >= MAX_NUM_TASKS )
@@ -60,49 +86,51 @@ bool Task_split(uint8_t Body_idx, task_stack* task_stack_ptr, core_info* p_manag
         printf("NO MORE SPLIT \n");
         return false;
     }
+
     uint8_t Tail_idx = task_stack_ptr->top;
+    task_info* Body_task = task_stack_ptr->list[Body_idx];
+    task_info* Tail_task = task_stack_ptr->list[Tail_idx];
+    
 
     // * Body Task Copy 
-    task_stack_ptr->list[Tail_idx]->Task_Name = task_stack_ptr->list[Body_idx]->Task_Name;
-    task_stack_ptr->list[Tail_idx]->Period = task_stack_ptr->list[Body_idx]->Period;
-    task_stack_ptr->list[Tail_idx]->priority = task_stack_ptr->list[Body_idx]->priority;
+    Tail_task->Task_Name = Body_task->Task_Name;
+    Tail_task->Period = Body_task->Period;
+    Tail_task->priority = Body_task->priority;
 
     // * Temp : Runtime을 절반으로 쪼개서 나누어 가짐
     // * Temp : 여기서 Core를 지정할 필요는 없음
-    task_stack_ptr->list[Tail_idx]->Runtime = (task_stack_ptr->list[Body_idx]->Runtime) / 2;
-    task_stack_ptr->list[Tail_idx]->Core_Affinity = Core1;
+    Tail_task->Runtime = (Body_task->Runtime) / 2;
+    Tail_task->Core_Affinity = Core1;
 
     // * Tail Task 설정 및 생성
-    task_stack_ptr->list[Tail_idx]->subnum = (task_stack_ptr->list[Body_idx]->subnum + 1);
-    task_stack_ptr->list[Tail_idx]->Dependency = true;
+    Tail_task->subnum = (Body_task->subnum + 1);
+    Tail_task->Dependency = true;
 
-    xTaskCreate(task_stack_ptr->list[Tail_idx]->Task_Code,task_stack_ptr->list[Tail_idx]->Task_Name,STACK_SIZE,NULL,
-        task_stack_ptr->list[Tail_idx]->priority,&(task_stack_ptr->list[Tail_idx]->my_ptr));
+    xTaskCreate(Tail_task->Task_Code,Tail_task->Task_Name,STACK_SIZE,NULL,
+        Tail_task->priority,&(Tail_task->my_ptr));
     
     // * Temp : 생성된 Task를 설정된 Core에 할당
-    // Assign_task(task_stack_ptr->list[Tail_idx]->my_ptr, task_stack_ptr->list[Tail_idx]->Core_Affinity,
-    //     task_stack_ptr->list[Tail_idx]->Utilization, p_manager);
+
+    // Assign_task(Tail_task->my_ptr, Tail_task->Core_Affinity,
+    //     Tail_task->Utilization, p_manager);
 
     // * Body Task 재 설정
-    task_stack_ptr->list[Body_idx]->Runtime -= task_stack_ptr->list[Tail_idx]->Runtime;
-    task_stack_ptr->list[Body_idx]->splitted_ptr = task_stack_ptr->list[Tail_idx]->my_ptr;
+    Body_task->Runtime -= Tail_task->Runtime;
+    Body_task->splitted_ptr = Tail_task->my_ptr;
 
     return true;
 }
 
 
-/***********************TASK***************************/
-
-void Assign_task(TaskHandle_t task_ptr, UBaseType_t Core_num, float Utilization, core_stack* core_stack_ptr)
+void Assign_task(task_info* T,core_info* C, core_stack* core_stack_ptr)
 {
+    TaskHandle_t task_ptr = T->my_ptr;
+    UBaseType_t Core_num = C->Core_num;
+
     vTaskCoreAffinitySet(task_ptr, Core_num);
-    core_stack_ptr->list[(Core_num >> 1)]->Utilization += Utilization;
+    core_stack_ptr->list[(Core_num >> 1)]->Utilization += T->Utilization;
 }
 
-void init_task_stack(task_stack* task_stack_ptr)
-{
-    task_stack_ptr->top = -1; //현재 stack에 들어가 있는 task 위치를 가리킴
-}
 
 bool T_is_full(task_stack* task_stack_ptr)
 {
@@ -143,6 +171,24 @@ void Print_task(task_info* T)
 {
     printf("%s(%d) Priority:%d  Core: %d Utilization : %.3f Heavy : %d \n",T->Task_Name,T->subnum, T->priority,T->Core_Affinity, T->Utilization, T->Heavy);
 }
+
+bool simple_test(task_info* T, int num_of_Lower_T ,core_stack* core_stack_ptr,task_stack* task_stack_ptr,float Utilization_Bound)
+{
+    float sum = 0.0f;
+
+    for(int i= num_of_Lower_T+1; i < NUM_OF_TASK ; i++)
+    {
+        sum += task_stack_ptr->list[i]->Utilization;
+    }
+
+    if(sum > (core_stack_ptr->top) * Utilization_Bound)
+    {
+        printf("T%d IS HEVAY BUT AFFORDABLE \n" , num_of_Lower_T+1);
+        return false;
+    }
+
+    return true;
+}
 /***********************TASK***************************/
 
 
@@ -151,6 +197,15 @@ void Print_task(task_info* T)
 void init_core_stack(core_stack* core_stack_ptr)
 {
     core_stack_ptr->top = -1;
+}
+
+void init_core(core_stack* core_stack_ptr, core_info core_list[])
+{
+    init_core_stack(core_stack_ptr);
+    for(int i=0; i<configNUMBER_OF_CORES;i++)
+    {
+        Push_core(&core_list[i],core_stack_ptr);
+    }
 }
 
 bool C_is_full(core_stack* core_stack_ptr)
@@ -165,6 +220,16 @@ bool C_is_empty(core_stack* core_stack_ptr)
     return false;
 }
 
+core_info* Pop_core(core_stack* core_stack_ptr)
+{
+    if (C_is_empty(core_stack_ptr))
+    {
+        printf("core STACK UNDER FLOW\n");
+        return NULL;
+    }
+    return core_stack_ptr->list[core_stack_ptr->top--];
+}
+
 void Push_core(core_info* P, core_stack* core_stack_ptr)
 {
     if(C_is_full(core_stack_ptr))
@@ -177,36 +242,20 @@ void Push_core(core_info* P, core_stack* core_stack_ptr)
     return;
 }
 
-core_info* Pop_core(core_stack* core_stack_ptr)
+core_info* get_min_core(core_stack* core_stack_ptr)
 {
-    if (C_is_empty(core_stack_ptr))
+    int min_i = core_stack_ptr->top;
+    printf("%d \n", min_i);
+    for(int i = min_i -1 ; i>=0; i--)
     {
-        printf("core STACK UNDER FLOW\n");
-        return NULL;
+        if(core_stack_ptr->list[i]->Utilization < core_stack_ptr->list[min_i]->Utilization)
+        {
+            printf(" %f <-> %f \n",core_stack_ptr->list[i]->Utilization, core_stack_ptr->list[min_i]->Utilization);
+            min_i = i;
+        }
     }
-    return core_stack_ptr->list[core_stack_ptr->top--];
+
+    return core_stack_ptr->list[min_i];
 }
 
-void init_core(core_stack* core_stack_ptr, core_info core_list[])
-{
-    init_core_stack(core_stack_ptr);
-    for(int i=0; i<configNUMBER_OF_CORES;i++)
-    {
-        Push_core(&core_list[i],core_stack_ptr);
-    }
-}
 /***********************CORE***************************/
-
-float get_Utilization()
-{
-    float n = NUM_OF_TASK;
-    float U = n * (pow(2.0, 1.0 / n) - 1);
-    printf("For %d tasks Utilization Bound is :  %.4f \n",NUM_OF_TASK, U);
-    return U;
-}
-float get_lighttask(float U)
-{
-    float Light_bound = U/(1+U);
-    printf("For %d tasks Light_Bound is :  %.4f \n",NUM_OF_TASK, Light_bound);
-    return Light_bound;
-}

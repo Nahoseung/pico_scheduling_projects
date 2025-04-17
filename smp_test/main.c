@@ -19,7 +19,7 @@ task_info task_list [MAX_NUM_TASKS] =
         {vTask0, "TASK 0",  40, 100, Core0, 2,1, NULL, NULL, false,false}, // TASK 0
         {vTask1, "TASK 1",  50, 100, Core1, 2,1, NULL, NULL, false,false}, // TASK 1
         // {vTask2,0,}
-        {vTask2, "TASK 2",  20, 100, Core1, 1,1, NULL, NULL, false,false}  // TASK 2
+        {vTask2, "TASK 2",  30, 100, Core1, 1,1, NULL, NULL, false,false}  // TASK 2
 
 };
 task_stack task_manager;
@@ -27,8 +27,8 @@ task_stack Normal_task;
 
 core_info core_list[configNUMBER_OF_CORES] = 
 {
-    {Core0, 0.0},
-    {Core1, 0.0}
+    {Core0, 0.0,false},
+    {Core1, 0.0,false}
 };
 core_stack core_manager;
 core_stack pre_assigned_core;
@@ -44,16 +44,16 @@ int main()
     init_core(&core_manager,core_list);
 
     // * TASK들을 STACK에 PUSH
-    init_task(&task_manager,task_list,&core_manager);
+    float Utilization_Bound = init_task(&task_manager,task_list,&core_manager);
 
     // * UQ, PQ_pre stack들을 초기화
     init_core_stack(&pre_assigned_core);
     init_task_stack(&Normal_task);
-
+    printf("Core 0 Utilization : %.3f, Core 1 Utilization : %.3f \n" , core_manager.list[0]->Utilization, core_manager.list[1]->Utilization);
     // * POP TEST
     // task_info* tempT = Pop_task(&task_manager); 
     // Push_task(tempT,&Normal_task);
-    Print_task(&task_list[1]);
+    // Print_task(&task_list[1]);
 
         // Task_split(0,&admin);
     
@@ -62,9 +62,16 @@ int main()
     task_list[1].Dependency = true;
 
     // * POP TEST
-    core_info* temp = Pop_core(&core_manager);
-    Push_core(temp,&pre_assigned_core);
-    printf("Core 0 Utilization : %.3f, Core 1 Utilization : %.3f \n" , core_manager.list[core_manager.top]->Utilization, pre_assigned_core.list[pre_assigned_core.top]->Utilization);
+    core_info*  temp = get_min_core(&core_manager);
+    printf("Min core %d  Utilization %.3f\n", (temp->Core_num>>1),temp->Utilization);
+
+    // bool flag = simple_test(&task_list[0],0,1,&task_manager,Utilization_Bound);
+    // printf("task 0 simple test result : %d \n",flag);
+
+    // temp = Pop_core(&core_manager);
+    // Push_core(temp,&pre_assigned_core);
+    
+    // printf("Core 0 Utilization : %.3f, Core 1 Utilization : %.3f \n" , core_manager.list[core_manager.top]->Utilization, pre_assigned_core.list[pre_assigned_core.top]->Utilization);
 
 
     /*
