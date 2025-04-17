@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
-#define NUM_OF_TASK 3
+#define NUM_OF_TASK 5
 #define MAX_NUM_TASKS NUM_OF_TASK + configNUMBER_OF_CORES -1 
 #define STACK_SIZE 256
 
@@ -54,6 +54,7 @@ typedef struct
 {
     core_info* list[configNUMBER_OF_CORES];
     int top;
+    float Utilization_Bound;
 }core_stack;
 
 
@@ -63,24 +64,26 @@ typedef struct
 bool Periodic_Job(uint16_t Runtime, uint16_t Deadline);
 
 /************TASK**************/
+
 float get_Utilization();
 float get_lighttask(float U);
 
 void init_task_stack(task_stack* task_stack_ptr);
-float init_task(task_stack* admin, task_info task_list[],core_stack* core_stack_ptr);
-bool Task_split(uint8_t Body_idx, task_stack* admin);
-void Assign_task(task_info* T,core_info* C, core_stack* core_stack_ptr);
+float init_task(task_stack* task_stack_ptr, task_info task_list[],core_stack* core_stack_ptr);
+bool Task_split(task_info* T, core_info* C, core_stack* core_stack_ptr,task_stack* task_stack_ptr);
+void Assign_task(task_info* T,core_info* C);
 
 bool T_is_full(task_stack* task_stack_ptr);
 bool T_is_empty(task_stack* task_stack_ptr);
 task_info* Pop_task(task_stack* task_stack_ptr);
 void Push_task(task_info* T,task_stack* task_stack_ptr);
 void Print_task(task_info* T);
-bool simple_test(task_info* T, int num_of_Lower_T ,core_stack* core_stack_ptr,task_stack* task_stack_ptr,float Utilization_Bound);
+bool simple_test(task_info* T, int num_of_Lower_T ,core_stack* core_stack_ptr,task_stack* task_stack_ptr);
 
 /************TASK**************/
 
 /************Core**************/
+
 void init_core_stack(core_stack* core_stack_ptr);
 void init_core(core_stack* core_stack_ptr, core_info core_list[]);
 
@@ -90,13 +93,10 @@ core_info* Pop_core(core_stack* core_stack_ptr);
 void Push_core(core_info* P, core_stack* core_stack_ptr);
 
 core_info* get_min_core(core_stack* core_stack_ptr);
+
 /************Core**************/
 
 /************** NOT YET ***************/
 void print_core();
-
-
-
-
 
 #endif /*TASK_MANAGER_H*/
