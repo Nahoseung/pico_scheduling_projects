@@ -11,56 +11,62 @@ void vTask0(void* pvParameters);
 void vTask1(void* pvParameters);
 void vTask2(void* pvParameters);
 
-#if BusyWaitting
-    bool Task0_end = false; 
-#endif
+task_info task_list [MAX_NUM_TASKS] =
+{
 
+        /* Code /  Name  / Run / Period / Core / Priority / Subnum / my_ptr / splitted_ptr / Dependency / Heavy */
 
-task_info task_list [MAX_NUM_TASKS] ={
-
-        /* Code /  Name  / Run / Period / Core / Priority / Subnum / my_ptr / splitted_ptr / Dependency */
-
-        {vTask0, "TASK 0",  40, 100, Core0, 2,1, NULL, NULL, false}, // TASK 0
-        {vTask1, "TASK 1",  40, 100, Core1, 2,1, NULL, NULL, false}, // TASK 1
+        {vTask0, "TASK 0",  40, 100, Core0, 2,1, NULL, NULL, false,false}, // TASK 0
+        {vTask1, "TASK 1",  50, 100, Core1, 2,1, NULL, NULL, false,false}, // TASK 1
         // {vTask2,0,}
-        {vTask2, "TASK 2",  20, 100, Core1, 1,1, NULL, NULL, false}  // TASK 2
+        {vTask2, "TASK 2",  20, 100, Core1, 1,1, NULL, NULL, false,false}  // TASK 2
+
 };
 task_stack task_manager;
+task_stack Normal_task;
 
-core_info P0 = {Core0,0.0};
-core_info P1 = {Core1,0.0};
-core_info* P_manager[configNUMBER_OF_CORES] = {&P0, &P1};  //[2]
-
+core_info core_list[configNUMBER_OF_CORES] = 
+{
+    {Core0, 0.0},
+    {Core1, 0.0}
+};
+core_stack core_manager;
+core_stack pre_assigned_core;
 
 int main() 
 {
     stdio_init_all(); 
 
     sleep_ms(5000);
-    printf("START KERNEL at : %d \n",get_core_num());
+    printf("START KERNEL at : CORE %d \n",get_core_num());
 
-    // * STACK 초기화
-    init_task_stack(&task_manager); 
-    printf("INIT STACK %d \n",get_core_num());  
+    // * Core ptr을 STACK에 PUSH
+    init_core(&core_manager,core_list);
 
     // * TASK들을 STACK에 PUSH
-    init_task(&task_manager,task_list,P_manager);
-    printf("INIT TASK %d \n", get_core_num());  
+    init_task(&task_manager,task_list,&core_manager);
+
+    // * UQ, PQ_pre stack들을 초기화
+    init_core_stack(&pre_assigned_core);
+    init_task_stack(&Normal_task);
 
     // * POP TEST
-    // Print_task(Pop_task(&task_manager)); 
+    // task_info* tempT = Pop_task(&task_manager); 
+    // Push_task(tempT,&Normal_task);
+    Print_task(&task_list[1]);
 
-    // Task_split(0,&admin);
+        // Task_split(0,&admin);
     
     // * Dependency TEST
-    #if !BusyWaitting
     task_list[0].splitted_ptr = task_list[1].my_ptr;
     task_list[1].Dependency = true;
-    #endif
 
-    printf("Core 0 Utilization : %.3f, Core 1 Utilization : %.3f \n" , P_manager[Core0 >>1]->Utilization, P_manager[Core1>>1]->Utilization);
-    fflush(stdout);
-    // sleep_ms(1000);
+    // * POP TEST
+    core_info* temp = Pop_core(&core_manager);
+    Push_core(temp,&pre_assigned_core);
+    printf("Core 0 Utilization : %.3f, Core 1 Utilization : %.3f \n" , core_manager.list[core_manager.top]->Utilization, pre_assigned_core.list[pre_assigned_core.top]->Utilization);
+
+
     /*
      * ******************** SPA2  ************************
      */
@@ -71,6 +77,10 @@ int main()
 
     return 0;
 }
+
+
+/************************************************* PERIODIC TASKS ******************************************************/
+
 
 void vTask0(void *pvParameters) 
 { 
@@ -94,7 +104,7 @@ void vTask0(void *pvParameters)
     TickType_t LastRequestTime;
     bool flag=false;
     
-    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : %d \n", Task_name, subnum, Run_tick, Period_tick,task_list[task_num].Utilization,task_list[task_num].priority,get_core_num());
+    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task_name, subnum, Run_tick, Period_tick,task_list[task_num].Utilization,task_list[task_num].priority,get_core_num());
     LastRequestTime = xTaskGetTickCount();
     
 
@@ -105,7 +115,7 @@ void vTask0(void *pvParameters)
 
         if(Dependency)
         {
-            printf("%s suspending something\n",Task_name);
+            printf("%s Suspended \n",Task_name);
             vTaskSuspend(my_ptr);
         }
 
@@ -165,7 +175,7 @@ void vTask1(void *pvParameters)
     TickType_t Deadline;
     TickType_t LastRequestTime;
     bool flag=false;
-    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : %d \n", Task_name, subnum, Run_tick, Period_tick,task_list[task_num].Utilization,task_list[task_num].priority,get_core_num());
+    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task_name, subnum, Run_tick, Period_tick,task_list[task_num].Utilization,task_list[task_num].priority,get_core_num());
     LastRequestTime = xTaskGetTickCount();
 
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick
@@ -175,7 +185,7 @@ void vTask1(void *pvParameters)
     {
         if(Dependency)
         {
-            printf("%s suspending something\n",Task_name);
+            printf("%s Suspended \n",Task_name);
             vTaskSuspend(my_ptr);
         }
 
@@ -234,7 +244,7 @@ void vTask2(void *pvParameters)
     TickType_t LastRequestTime;
     bool flag=false;
 
-    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : %d \n", Task_name, subnum, Run_tick, Period_tick,task_list[task_num].Utilization,task_list[task_num].priority,get_core_num());
+    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task_name, subnum, Run_tick, Period_tick,task_list[task_num].Utilization,task_list[task_num].priority,get_core_num());
 
     LastRequestTime = xTaskGetTickCount();
 
@@ -244,7 +254,7 @@ void vTask2(void *pvParameters)
     {
         if(Dependency)
         {
-            printf("%s suspending something\n",Task_name);
+            printf("%s Suspended \n",Task_name);
             vTaskSuspend(my_ptr);
         }
 

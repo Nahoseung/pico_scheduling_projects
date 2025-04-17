@@ -6,6 +6,7 @@
 #include "task.h"
 #include <stdio.h>
 #include <stdbool.h>
+#include <math.h>
 #define NUM_OF_TASK 3
 #define MAX_NUM_TASKS NUM_OF_TASK + configNUMBER_OF_CORES -1 
 #define STACK_SIZE 256
@@ -30,7 +31,7 @@ typedef struct
     TaskHandle_t splitted_ptr;
 
     bool Dependency;
-
+    bool Heavy;
     float Utilization;
 }task_info;
 
@@ -59,10 +60,10 @@ typedef struct
 
 
 bool Periodic_Job(uint16_t Runtime, uint16_t Deadline);
-void init_task(task_stack* admin, task_info task_list[],core_info* p_manager[]);
+void init_task(task_stack* admin, task_info task_list[],core_stack* core_stack_ptr);
 void init_admin(task_stack* admin, task_info* manager);
 bool Task_split(uint8_t Body_idx, task_stack* admin, core_info* p_manager[]);
-void Assign_task(TaskHandle_t task_ptr,UBaseType_t Core_num, float Utilization, core_info* p_manager[]);
+void Assign_task(TaskHandle_t task_ptr,UBaseType_t Core_num, float Utilization, core_stack* core_stack_ptr);
 /************NOT YET**************/
 
 void SPA2();
@@ -79,6 +80,10 @@ bool C_is_full(core_stack* core_stack_ptr);
 bool C_is_empty(core_stack* core_stack_ptr);
 void Push_core(core_info* P, core_stack* core_stack_ptr);
 core_info* Pop_core(core_stack* core_stack_ptr);
+void init_core(core_stack* core_stack_ptr, core_info core_list[]);
+
+float get_Utilization();
+float get_lighttask(float U);
 
 
 #endif /*TASK_MANAGER_H*/
