@@ -72,6 +72,7 @@ bool T_is_full(task_stack* task_stack_ptr);
 bool T_is_empty(task_stack* task_stack_ptr);
 task_info* Pop_task(task_stack* task_stack_ptr);
 void Push_task(task_info* T,task_stack* task_stack_ptr);
+void Print_task(task_info* T);
 
 void init_core_stack(core_stack* core_stack_ptr);
 bool C_is_full(core_stack* core_stack_ptr);

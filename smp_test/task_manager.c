@@ -28,8 +28,8 @@ void init_task(task_stack* task_stack_ptr, task_info task_list[],core_info* p_ma
 {
     for(int i=0; i < NUM_OF_TASK; i++)
     {
-        printf("%d %d\n",i,task_stack_ptr->top);
         Push_task(&task_list[i], task_stack_ptr);
+
         task_stack_ptr->list[i]->Utilization = (float) task_stack_ptr->list[i]->Runtime / (float) task_stack_ptr->list[i]->Period;
 
         xTaskCreate(task_stack_ptr->list[i]->Task_Code,task_stack_ptr->list[i]->Task_Name,STACK_SIZE,NULL,
@@ -133,6 +133,10 @@ void Push_task(task_info* T, task_stack* task_stack_ptr)
     return;
 }
 
+void Print_task(task_info* T)
+{
+    printf("%s(%d) Priority:%d  Core: %d Utilization : %f\n",T->Task_Name,T->subnum, T->priority,T->Core_Affinity, T->Utilization);
+}
 /***********************TASK***************************/
 
 /***********************CORE***************************/

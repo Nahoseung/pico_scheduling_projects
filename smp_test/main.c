@@ -5,7 +5,6 @@
 #include "task_manager.h"
 #include "pico/stdlib.h"
 
-#define BusyWaitting 0
 #define sync_R 10
 
 void vTask0(void* pvParameters);
@@ -38,24 +37,30 @@ int main()
     stdio_init_all(); 
 
     sleep_ms(5000);
-    printf("START KERNEL \n");
+    printf("START KERNEL at : %d \n",get_core_num());
 
-    // init_admin(&admin,manager);
+    // * STACK 초기화
     init_task_stack(&task_manager); 
-    printf("INIT STACK\n");   
+    printf("INIT STACK %d \n",get_core_num());  
+
+    // * TASK들을 STACK에 PUSH
     init_task(&task_manager,task_list,P_manager);
-    printf("INIT TASK\n");   
+    printf("INIT TASK %d \n", get_core_num());  
+
+    // * POP TEST
+    // Print_task(Pop_task(&task_manager)); 
 
     // Task_split(0,&admin);
     
-
+    // * Dependency TEST
     #if !BusyWaitting
     task_list[0].splitted_ptr = task_list[1].my_ptr;
     task_list[1].Dependency = true;
     #endif
 
     printf("Core 0 Utilization : %.3f, Core 1 Utilization : %.3f \n" , P_manager[Core0 >>1]->Utilization, P_manager[Core1>>1]->Utilization);
-
+    fflush(stdout);
+    // sleep_ms(1000);
     /*
      * ******************** SPA2  ************************
      */
@@ -83,26 +88,26 @@ void vTask0(void *pvParameters)
     TaskHandle_t splitted_ptr = task_list[task_num].splitted_ptr;
     bool Dependency = task_list[task_num].Dependency;
 
-    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : 0x%d \n", Task_name, subnum, Run_tick, Period_tick,task_list[task_num].Utilization,task_list[task_num].priority,task_list[task_num].my_ptr);
+   
 
     TickType_t Deadline;
     TickType_t LastRequestTime;
     bool flag=false;
     
+    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : %d \n", Task_name, subnum, Run_tick, Period_tick,task_list[task_num].Utilization,task_list[task_num].priority,get_core_num());
     LastRequestTime = xTaskGetTickCount();
+    
 
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick
 
     while (true) 
     {
-        #if BusyWaitting
-        Task0_end = false;
-        #else 
+
         if(Dependency)
         {
+            printf("%s suspending something\n",Task_name);
             vTaskSuspend(my_ptr);
         }
-        #endif
 
         Deadline = LastRequestTime + Period_tick; // 최신 요청 기준 Deadline 업데이트
 
@@ -147,39 +152,36 @@ void vTask1(void *pvParameters)
     static const uint8_t task_num= 1;
     /*******************************/
 
-    uint16_t Run_tick = task_list[task_num].Runtime; // Run_time : 10 tick -> 0.1 sec
-    TickType_t Period_tick = task_list[task_num].Period; // Period : 200 tick -> 2.0 sec
+    uint16_t Run_tick = task_list[task_num].Runtime; 
+    TickType_t Period_tick = task_list[task_num].Period; 
     const char* Task_name = task_list[task_num].Task_Name;
     uint8_t subnum = task_list[task_num].subnum;
     TaskHandle_t my_ptr = task_list[task_num].my_ptr;
     TaskHandle_t splitted_ptr = task_list[task_num].splitted_ptr;
     bool Dependency = task_list[task_num].Dependency;
 
-    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : 0x%d \n", Task_name, subnum, Run_tick, Period_tick,task_list[task_num].Utilization,task_list[task_num].priority,task_list[task_num].my_ptr);
+    
 
     TickType_t Deadline;
     TickType_t LastRequestTime;
     bool flag=false;
-    
+    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : %d \n", Task_name, subnum, Run_tick, Period_tick,task_list[task_num].Utilization,task_list[task_num].priority,get_core_num());
     LastRequestTime = xTaskGetTickCount();
 
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick
+    
 
     while (true) 
     {
-        #if BusyWaitting
-        Task0_end = false;
-        #else 
         if(Dependency)
         {
+            printf("%s suspending something\n",Task_name);
             vTaskSuspend(my_ptr);
         }
-        #endif
 
         Deadline = LastRequestTime + Period_tick; // 최신 요청 기준 Deadline 업데이트
 
         /*******************************************************************************************************/
-
         printf("%d : %s(%d) execute on Core %d Deadline : %d \n", xTaskGetTickCount(), Task_name,subnum,get_core_num(),Deadline);
         flag = Periodic_Job(Run_tick,Deadline);
 
@@ -194,6 +196,7 @@ void vTask1(void *pvParameters)
 
         if (splitted_ptr != NULL)
         {
+
             vTaskResume(splitted_ptr);
         }
 
@@ -212,45 +215,42 @@ void vTask1(void *pvParameters)
 
 void vTask2(void *pvParameters) 
 {
-    /****** Tick (10ms) 기준 Runtime, Period 부여 ******/
+/****** Tick (10ms) 기준 Runtime, Period 부여 ******/
 
     /*******************************/
     static const uint8_t task_num= 2;
     /*******************************/
 
-    uint16_t Run_tick = task_list[task_num].Runtime; // Run_time : 10 tick -> 0.1 sec
-    TickType_t Period_tick = task_list[task_num].Period; // Period : 200 tick -> 2.0 sec
+    uint16_t Run_tick = task_list[task_num].Runtime; 
+    TickType_t Period_tick = task_list[task_num].Period; 
     const char* Task_name = task_list[task_num].Task_Name;
     uint8_t subnum = task_list[task_num].subnum;
     TaskHandle_t my_ptr = task_list[task_num].my_ptr;
     TaskHandle_t splitted_ptr = task_list[task_num].splitted_ptr;
     bool Dependency = task_list[task_num].Dependency;
 
-    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : 0x%d \n", Task_name, subnum, Run_tick, Period_tick,task_list[task_num].Utilization,task_list[task_num].priority,task_list[task_num].my_ptr);
 
     TickType_t Deadline;
     TickType_t LastRequestTime;
     bool flag=false;
-    
+
+    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : %d \n", Task_name, subnum, Run_tick, Period_tick,task_list[task_num].Utilization,task_list[task_num].priority,get_core_num());
+
     LastRequestTime = xTaskGetTickCount();
 
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick
-
+    
     while (true) 
     {
-        #if BusyWaitting
-        Task0_end = false;
-        #else 
         if(Dependency)
         {
+            printf("%s suspending something\n",Task_name);
             vTaskSuspend(my_ptr);
         }
-        #endif
 
         Deadline = LastRequestTime + Period_tick; // 최신 요청 기준 Deadline 업데이트
 
         /*******************************************************************************************************/
-
         printf("%d : %s(%d) execute on Core %d Deadline : %d \n", xTaskGetTickCount(), Task_name,subnum,get_core_num(),Deadline);
         flag = Periodic_Job(Run_tick,Deadline);
 
@@ -265,6 +265,7 @@ void vTask2(void *pvParameters)
 
         if (splitted_ptr != NULL)
         {
+
             vTaskResume(splitted_ptr);
         }
 
