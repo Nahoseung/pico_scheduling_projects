@@ -1,7 +1,7 @@
 #include "task_manager.h"
 
 
-bool Periodic_Job(uint16_t Runtime, uint16_t Deadline)
+bool Periodic_Job (uint16_t Runtime, uint16_t Deadline)
 {
     /********* CHECK DEADLINE ********/
     if(xTaskGetTickCount() + Runtime >= Deadline)
@@ -28,13 +28,13 @@ float get_Utilization()
 {
     float n = NUM_OF_TASK;
     float U = n * (pow(2.0, 1.0 / n) - 1);
-    printf("For %d tasks Utilization Bound is :  %.4f \n",NUM_OF_TASK, U);
+    // printf("For %d tasks Utilization Bound is :  %.4f \n",NUM_OF_TASK, U);
     return U;
 }
 float get_lighttask(float U)
 {
     float Light_bound = U/(1+U);
-    printf("For %d tasks Light_Bound is :  %.4f \n",NUM_OF_TASK, Light_bound);
+    // printf("For %d tasks Light_Bound is :  %.4f \n",NUM_OF_TASK, Light_bound);
     return Light_bound;
 }
 
@@ -52,7 +52,7 @@ float init_task(task_stack* task_stack_ptr, task_info task_list[],core_stack* co
     float U = get_Utilization();
     float Light_bound = get_lighttask(U);
 
-    for(int i=0; i < NUM_OF_TASK; i++)
+    for(int i=0; i < MAX_NUM_TASKS; i++)
     {
         Push_task(&task_list[i], task_stack_ptr);
 
@@ -65,32 +65,36 @@ float init_task(task_stack* task_stack_ptr, task_info task_list[],core_stack* co
         {
             task->Heavy = true;
         }
-
-        xTaskCreate(task->Task_Code,task->Task_Name,STACK_SIZE,NULL,
+        
+        TaskHandle_t flag = xTaskCreate(task->Task_Code,task->Task_Name,STACK_SIZE,NULL,
             task->priority,&(task->my_ptr));
+            if(flag!=NULL)
+            {
+                printf("Create : %s\n ",task->Task_Name);
+            }
 
         // * Temp : 생성된 Task를 설정된 Core에 할당
 
-        // Assign_task(task, core_stack_ptr->list[(task->Core_Affinity >> 1)]);
+        Assign_task(task, core_stack_ptr->list[(task->Core_Affinity >> 1)]);
     }
 
     return U;
 }
 
 
-bool Task_split(task_info* T, core_info* C, core_stack* core_stack_ptr,task_stack* task_stack_ptr)
+bool Task_split(task_info* T,task_info* Tail_T, core_info* C, core_stack* core_stack_ptr,task_stack* task_stack_ptr)
 {
 
-    if( ++ (task_stack_ptr-> top) >= MAX_NUM_TASKS )
-    {
-        printf("NO MORE SPLIT OVER FLOW \n");
-        return false;
-    }
+    // if( ++ (task_stack_ptr-> top) >= MAX_NUM_TASKS )
+    // {
+    //     printf("NO MORE SPLIT OVER FLOW \n");
+    //     return false;
+    // }
 
-    uint8_t Tail_idx = task_stack_ptr->top;
+    // int Tail_idx = task_stack_ptr->top;
 
     task_info* Body_task = T;
-    task_info* Tail_task = task_stack_ptr->list[Tail_idx];
+    task_info* Tail_task = Tail_T;
 
     // * Body Task Copy 
     Tail_task->Task_Name = Body_task->Task_Name;
@@ -103,6 +107,7 @@ bool Task_split(task_info* T, core_info* C, core_stack* core_stack_ptr,task_stac
     // * Utilization에 따른 Runtime 조정
     Body_task->Utilization = (core_stack_ptr->Utilization_Bound) - (C->Utilization);
     Body_task->Runtime = (Body_task->Utilization) * (Body_task->Period);
+    //  printf("%f = %f - %f \n", Body_task->Utilization,core_stack_ptr->Utilization_Bound, C->Utilization);
 
     Tail_task->Utilization = Origin_U - Body_task->Utilization;
     Tail_task->Runtime = Origin_R - Body_task->Runtime;
@@ -111,8 +116,8 @@ bool Task_split(task_info* T, core_info* C, core_stack* core_stack_ptr,task_stac
     // * Tail Task 설정 및 생성
     Tail_task->subnum = (Body_task->subnum + 1);
     Tail_task->Dependency = true;
-    xTaskCreate(Tail_task->Task_Code,Tail_task->Task_Name,STACK_SIZE,NULL,
-        Tail_task->priority,&(Tail_task->my_ptr));
+    // xTaskCreate(Tail_task->Task_Code,Tail_task->Task_Name,STACK_SIZE,NULL,
+    //     Tail_task->priority,&(Tail_task->my_ptr));
     
 
     // * Body Task 재 설정
@@ -132,7 +137,7 @@ void Assign_task(task_info* T,core_info* C)
 
     vTaskCoreAffinitySet(task_ptr, Core_num);
     C->Utilization += T->Utilization;
-    printf("ASSIGN %s to Core %d \n", T->Task_Name,(C->Core_num>>1));
+    // printf("ASSIGN %s to Core %d \n", T->Task_Name,(C->Core_num>>1));
     // core_stack_ptr->list[(Core_num >> 1)]->Utilization += T->Utilization;
 }
 
@@ -153,7 +158,7 @@ task_info* Pop_task(task_stack* task_stack_ptr)
 {
     if(T_is_empty(task_stack_ptr))
     {
-        printf("UNDER FLOW\n");
+        printf("TASK_STACK_UNDER FLOW\n");
         return NULL;
     }
 
@@ -164,7 +169,7 @@ void Push_task(task_info* T, task_stack* task_stack_ptr)
 {
     if(T_is_full(task_stack_ptr))
     {
-        printf("OVER FLOW\n");
+        printf("TASK_STACK_OVER FLOW\n");
         return;
     }
 
@@ -207,7 +212,7 @@ void init_core_stack(core_stack* core_stack_ptr)
 void init_core(core_stack* core_stack_ptr, core_info core_list[])
 {
     init_core_stack(core_stack_ptr);
-    for(int i=0; i<configNUMBER_OF_CORES;i++)
+    for(int i=0; i < configNUMBER_OF_CORES; i++)
     {
         Push_core(&core_list[i],core_stack_ptr);
     }

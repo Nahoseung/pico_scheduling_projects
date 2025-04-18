@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
-#define NUM_OF_TASK 3
+#define NUM_OF_TASK 10
 #define MAX_NUM_TASKS NUM_OF_TASK + configNUMBER_OF_CORES -1 
 #define STACK_SIZE 256
 
@@ -70,7 +70,7 @@ float get_lighttask(float U);
 
 void init_task_stack(task_stack* task_stack_ptr);
 float init_task(task_stack* task_stack_ptr, task_info task_list[],core_stack* core_stack_ptr);
-bool Task_split(task_info* T, core_info* C, core_stack* core_stack_ptr,task_stack* task_stack_ptr);
+bool Task_split(task_info* T, task_info* Tail_T,core_info* C, core_stack* core_stack_ptr,task_stack* task_stack_ptr);
 void Assign_task(task_info* T,core_info* C);
 
 bool T_is_full(task_stack* task_stack_ptr);
