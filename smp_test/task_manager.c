@@ -132,6 +132,7 @@ void Assign_task(task_info* T,core_info* C)
 
     vTaskCoreAffinitySet(task_ptr, Core_num);
     C->Utilization += T->Utilization;
+    printf("ASSIGN %s to Core %d \n", T->Task_Name,(C->Core_num>>1));
     // core_stack_ptr->list[(Core_num >> 1)]->Utilization += T->Utilization;
 }
 
@@ -254,7 +255,7 @@ core_info* get_min_core(core_stack* core_stack_ptr)
     {
         if(core_stack_ptr->list[i]->Utilization < core_stack_ptr->list[min_i]->Utilization)
         {
-            printf(" %f <-> %f \n",core_stack_ptr->list[i]->Utilization, core_stack_ptr->list[min_i]->Utilization);
+            // printf(" %f <-> %f \n",core_stack_ptr->list[i]->Utilization, core_stack_ptr->list[min_i]->Utilization);
             min_i = i;
         }
     }

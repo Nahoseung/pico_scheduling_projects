@@ -11,20 +11,20 @@ void vTask0(void* pvParameters);
 void vTask1(void* pvParameters);
 void vTask2(void* pvParameters);
 void vTask3(void* pvParameters);
-void vTask4(void* pvParameters);
-void vTask5(void* pvParameters);
+// void vTask4(void* pvParameters);
+// void vTask5(void* pvParameters);
 
 task_info task_list [MAX_NUM_TASKS] =
 {
 
         /* Code /  Name  / Run / Period / Core / Priority / Subnum / my_ptr / splitted_ptr / Dependency / Heavy */
 
-        {vTask0, "TASK 0",  20, 100,  0, 5,1, NULL, NULL, false,false}, // TASK 0
-        {vTask1, "TASK 1",  80, 200,  0, 4,1, NULL, NULL, false,false}, // TASK 1
-        {vTask2, "TASK 2",  300, 400,  0, 3,1, NULL, NULL, false,false},  // TASK 2
-        {vTask3, "TASK 3",   20,  400,  0, 2,1, NULL, NULL,  false,false},
-        {vTask4, "TASK 4",   20,  400,  0, 1,1, NULL, NULL,  false,false},
-        {vTask5, "Extra T",   0,   0,  0, 1,1, NULL, NULL,  false,false}
+        {vTask0, "TASK 0",  40, 100,  0, 5,1, NULL, NULL, false,false}, // TASK 0
+        {vTask1, "TASK 1",  40, 100,  0, 4,1, NULL, NULL, false,false}, // TASK 1
+        {vTask2, "TASK 2",  40, 100,  0, 3,1, NULL, NULL, false,false},  // TASK 2
+        {vTask3, "TASK 3",   0,  0,  0, 2,1, NULL, NULL,  false,false}
+        // {vTask4, "TASK 4",   20,  400,  0, 1,1, NULL, NULL,  false,false},
+        // {vTask5, "Extra T",   0,   0,  0, 1,1, NULL, NULL,  false,false}
 };
 task_stack task_manager;
 task_stack Normal_task;
@@ -37,12 +37,25 @@ core_info core_list[configNUMBER_OF_CORES] =
 core_stack core_manager;
 core_stack pre_assigned_core;
 
+// UART 송신 완료 대기 함수
+void uart_wait_tx_complete(uart_inst_t *uart) {
+    // UART의 TX FIFO가 비워지고, 송신이 완료될 때까지 대기
+    while (!(uart_get_hw(uart)->fr & UART_UARTFR_TXFE_BITS)) {
+        // TX FIFO Empty (TXFE) 플래그가 설정될 때까지 대기
+    }
+    while (uart_get_hw(uart)->fr & UART_UARTFR_BUSY_BITS) {
+        // UART Busy 플래그가 클리어될 때까지 대기
+    }
+}
+
+
 int main() 
 {
     stdio_init_all(); 
 
     sleep_ms(5000);
     printf("START KERNEL at : CORE %d \n",get_core_num());
+    fflush(stdout);
 
     // * Core ptr을 STACK에 PUSH
     init_core(&core_manager,core_list);
@@ -63,13 +76,17 @@ int main()
     /*
      * ******************** SPA2  ************************
      */
-
+    
+    
+    /* PRE-ASSIGN */
     for(int i=0; i < NUM_OF_TASK; i++)
     {
         task_info* T= task_manager.list[i];
         if(T->Heavy&&simple_test(T,i,&core_manager,&task_manager))
         {
             core_info* C = Pop_core(&core_manager);
+            printf("PRE-ASSIGN -> ");
+            fflush(stdout);
             Assign_task(T,C);
             C->pre_assigned = true;
             Push_core(C,&pre_assigned_core);
@@ -80,16 +97,22 @@ int main()
         }
     }
 
+    /* NORMAL-ASSIGN */
     while(!T_is_empty(&Normal_task))
     {
         core_info* min_C = get_min_core(&core_manager);
         task_info* T = Pop_task(&Normal_task);
 
+        /* SELCECT CORE */
         if(min_C->Utilization >= Utilization_Bound)
         {
+            printf("NO MORE NORMAL PROCESSOR : ");
+            fflush(stdout);
             min_C = Pop_core(&pre_assigned_core);
             if(min_C->Utilization >= Utilization_Bound)
             {
+                printf("ALL PROCESSORS FULLY UTILIZED \n");
+                fflush(stdout);
                 break;
             }
         }
@@ -97,6 +120,8 @@ int main()
         if(min_C->Utilization + T->Utilization <= Utilization_Bound)
         {
             // * !
+            printf("Normal_assign -> ");
+            fflush(stdout);
             Assign_task(T,min_C);
             
             if(min_C->pre_assigned)
@@ -107,13 +132,22 @@ int main()
         else
         {
             // * !
+            printf("Split -> ");
+            fflush(stdout);
             Task_split(T,min_C,&core_manager,&Normal_task);
             Assign_task(T,min_C);
         }
     }
-    printf("Core 0 Utilization : %.3f, Core 1 Utilization : %.3f \n" , core_manager.list[0]->Utilization, core_manager.list[1]->Utilization);
 
-    vTaskStartScheduler(); //Tick Count 시작
+    printf("-----------------------------------------------------------\n");
+    fflush(stdout);
+    printf("Core 0 Utilization : %.3f, Core 1 Utilization : %.3f \n" , core_manager.list[0]->Utilization, core_manager.list[1]->Utilization);
+    fflush(stdout);
+
+    // UART 송신 완료 대기
+    uart_wait_tx_complete(uart0); // UART0 사용 (stdio_init_all() 기본 설정)
+    
+    vTaskStartScheduler(); 
 
     while (true);
 
