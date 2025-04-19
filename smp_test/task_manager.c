@@ -52,7 +52,7 @@ float init_task(task_stack* task_stack_ptr, task_info task_list[],core_stack* co
     float U = get_Utilization();
     float Light_bound = get_lighttask(U);
 
-    for(int i=0; i < MAX_NUM_TASKS; i++)
+    for(int i=0; i < NUM_OF_TASK; i++)
     {
         Push_task(&task_list[i], task_stack_ptr);
 
@@ -68,14 +68,9 @@ float init_task(task_stack* task_stack_ptr, task_info task_list[],core_stack* co
         
         TaskHandle_t flag = xTaskCreate(task->Task_Code,task->Task_Name,STACK_SIZE,NULL,
             task->priority,&(task->my_ptr));
-            if(flag!=NULL)
-            {
-                printf("Create : %s\n ",task->Task_Name);
-            }
 
         // * Temp : 생성된 Task를 설정된 Core에 할당
-
-        Assign_task(task, core_stack_ptr->list[(task->Core_Affinity >> 1)]);
+        // Assign_task(task, core_stack_ptr->list[(task->Core_Affinity >> 1)]);
     }
 
     return U;
@@ -116,8 +111,8 @@ bool Task_split(task_info* T,task_info* Tail_T, core_info* C, core_stack* core_s
     // * Tail Task 설정 및 생성
     Tail_task->subnum = (Body_task->subnum + 1);
     Tail_task->Dependency = true;
-    // xTaskCreate(Tail_task->Task_Code,Tail_task->Task_Name,STACK_SIZE,NULL,
-    //     Tail_task->priority,&(Tail_task->my_ptr));
+    xTaskCreate(Tail_task->Task_Code,Tail_task->Task_Name,STACK_SIZE,NULL,
+        Tail_task->priority,&(Tail_task->my_ptr));
     
 
     // * Body Task 재 설정

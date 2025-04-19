@@ -5,26 +5,26 @@
 #include "task_manager.h"
 #include "pico/stdlib.h"
 
-#define sync_R 100  // vTaskDelay(pdMS_TO_TICKS(sync_R));  delay 1tick
+#define sync_R 10  // vTaskDelay(pdMS_TO_TICKS(sync_R));  delay 1tick
+#define Light 0
 
 void vTask0(void* pvParameters);
 void vTask1(void* pvParameters);
 void vTask2(void* pvParameters);
 void vTask3(void* pvParameters);
-void vTask4(void* pvParameters);
+// void vTask4(void* pvParameters);
 // void vTask5(void* pvParameters);
-
+#if !Light
 task_info task_list [MAX_NUM_TASKS] =
 {
 
         /* Code /  Name  / Run / Period / Core / Priority / Subnum / my_ptr / splitted_ptr / Dependency / Heavy */
 
-        {vTask0, "TASK 0",  20, 100,  Core0, 5,1, NULL, NULL, false,false}, // TASK 0
-        {vTask1, "TASK 1",  20, 100,  Core1, 4,1, NULL, NULL, false,false}, // TASK 1
-        {vTask2, "TASK 2",  15,   100,   Core1, 3,1, NULL, NULL, false,false},  // EXTRA TASKS
-
-        {vTask3, "TASK 3",   3,   100,   Core0, 5,1, NULL, NULL, false,false},
-        {vTask4, "TASK 4",   20,  400,  Core0, 1,1, NULL, NULL,  false,false}
+        {vTask0, "TASK 0",  40, 100,  Core0, 5,1, NULL, NULL, false,false}, // TASK 0
+        {vTask1, "TASK 1",  40, 100,  Core1, 4,1, NULL, NULL, false,false}, // TASK 1
+        {vTask2, "TASK 2",  40,   100,   Core1, 3,1, NULL, NULL, false,false},  // EXTRA TASKS
+        {vTask3, "TASK 3",   0,   100,   Core0, 2,1, NULL, NULL, false,false},
+        // {vTask4, "TASK 4",   20,  400,  Core0, 1,1, NULL, NULL,  false,false}
         // {vTask5, "Extra T",   0,   0,  0, 1,1, NULL, NULL,  false,false}
 };
 task_stack task_manager;
@@ -39,6 +39,7 @@ core_info core_list[configNUMBER_OF_CORES] =
 };
 core_stack core_manager;
 core_stack pre_assigned_core;
+#endif
 
 // UART 송신 완료 대기 함수
 void uart_wait_tx_complete(uart_inst_t *uart) {
@@ -57,123 +58,103 @@ int main()
     stdio_init_all(); 
 
     sleep_ms(5000);
-    TaskHandle_t T0;
-    TaskHandle_t T1;
-    TaskHandle_t T2;
-    TaskHandle_t T3;
 
-    // printf("START KERNEL at : CORE %d \n",get_core_num());
-    // fflush(stdout);
 
-    // * Core ptr을 STACK에 PUSH
-    // init_core(&core_manager,core_list);
+    printf("START KERNEL at : CORE %d \n",get_core_num());
+    fflush(stdout);
 
-    // * TASK들을 STACK에 PUSH
-    // float Utilization_Bound = init_task(&task_manager,task_list,&core_manager);
+    //* Core ptr을 STACK에 PUSH
+    init_core(&core_manager,core_list);
 
-    // core_manager.Utilization_Bound = Utilization_Bound;
-    // pre_assigned_core.Utilization_Bound = Utilization_Bound;
+    //* TASK들을 STACK에 PUSH
+    float Utilization_Bound = init_task(&task_manager,task_list,&core_manager);
 
-    // * UQ, PQ_pre stack들을 초기화
-    // init_core_stack(&pre_assigned_core);
-    // init_task_stack(&UQ);
-    printf("START KERNEL\n");
-    xTaskCreate(vTask0,"TASK0",128,NULL,4,&T0);
-    vTaskCoreAffinitySet(T0,Core0);
-    printf("CREATE TASK0\n");
+    core_manager.Utilization_Bound = Utilization_Bound;
+    pre_assigned_core.Utilization_Bound = Utilization_Bound;
 
-    xTaskCreate(vTask1,"TASK1",128,NULL,3,&T1);
-    vTaskCoreAffinitySet(T1,Core1);
-    printf("CREATE TASK1\n");
+    //* UQ, PQ_pre stack들을 초기화
+    init_core_stack(&pre_assigned_core);
+    init_task_stack(&UQ);
 
-    xTaskCreate(vTask2,"TASK2",128,NULL,2,&T2);
-    vTaskCoreAffinitySet(T2,Core1);
-    printf("CREATE TASK2\n");
-
-    xTaskCreate(vTask3,"TASK3",128,NULL,1,&T3);
-    vTaskCoreAffinitySet(T3,Core0);
-    printf("CREATE TASK3\n");
-
-    vTaskStartScheduler(); 
 
     /*
      * ******************** SPA2  ************************
      */
     
-    // int curr_idx = NUM_OF_TASK;
+    int curr_idx = NUM_OF_TASK;
 
-    // /* PRE-ASSIGN */
-    // for(int i=0; i < NUM_OF_TASK; i++)
-    // {
-    //     task_info* T= task_manager.list[i];
-    //     if(T->Heavy&&simple_test(T,i,&core_manager,&task_manager))
-    //     {
-    //         core_info* C = Pop_core(&core_manager);
-    //         // printf("PRE-ASSIGN -> ");
-    //         // fflush(stdout);
-    //         Assign_task(T,C);
-    //         C->pre_assigned = true;
-    //         Push_core(C,&pre_assigned_core);
-    //     }
-    //     else
-    //     {
-    //         Push_task(T,&UQ);
-    //     }
-    // }
+    /* PRE-ASSIGN */
+    for(int i=0; i < NUM_OF_TASK; i++)
+    {
+        task_info* T= task_manager.list[i];
+        if(T->Heavy&&simple_test(T,i,&core_manager,&task_manager))
+        {
+            core_info* C = Pop_core(&core_manager);
+            // printf("PRE-ASSIGN -> ");
+            // fflush(stdout);
+            Assign_task(T,C);
+            C->pre_assigned = true;
+            Push_core(C,&pre_assigned_core);
+        }
+        else
+        {
+            Push_task(T,&UQ);
+        }
+    }
 
-    // /* NORMAL-ASSIGN */
-    // while(!T_is_empty(&UQ))
-    // {
-    //     core_info* min_C = get_min_core(&core_manager);
-    //     task_info* T = Pop_task(&UQ);
+    /* NORMAL-ASSIGN */
+    while(!T_is_empty(&UQ))
+    {
+        core_info* min_C = get_min_core(&core_manager);
+        task_info* T = Pop_task(&UQ);
 
-    //     /* SELCECT CORE */
-    //     if(min_C->Utilization > Utilization_Bound)
-    //     {
-    //         printf("NO MORE NORMAL PROCESSOR : ");
-    //         fflush(stdout);
-    //         min_C = Pop_core(&pre_assigned_core);
-    //         if(min_C->Utilization >= Utilization_Bound)
-    //         {
-    //             printf("ALL PROCESSORS FULLY UTILIZED \n");
-    //             fflush(stdout);
-    //             break;
-    //         }
-    //     }
-    //     // printf("%f + %f <-> %f\n",min_C->Utilization,T->Utilization,Utilization_Bound);
-    //     printf("%s(%d)-> Core: %d ", T->Task_Name,T->subnum,(min_C->Core_num>>1));
-    //     if(min_C->Utilization + T->Utilization <= Utilization_Bound)
-    //     {
-    //         // * !
-    //         Assign_task(T,min_C);
-    //         // printf("Normal\n");
-    //         if(min_C->pre_assigned)
-    //         {
-    //             Push_core(min_C,&pre_assigned_core);
-    //         }
-    //     }
-    //     else
-    //     {
-    //         // * !
-    //         task_info* Tail_T = &(task_list[curr_idx++]);
-    //         Task_split(T,Tail_T,min_C,&core_manager,&UQ);
-    //         Assign_task(T,min_C);
-    //         // printf("Split\n");
-    //     }
-    // }
+        /* SELCECT CORE */
+        if(min_C->Utilization > Utilization_Bound)
+        {
+            printf("NO MORE NORMAL PROCESSOR : ");
+            fflush(stdout);
+            min_C = Pop_core(&pre_assigned_core);
+            if(min_C->Utilization >= Utilization_Bound)
+            {
+                printf("ALL PROCESSORS FULLY UTILIZED \n");
+                fflush(stdout);
+                break;
+            }
+        }
+        // printf("%f + %f <-> %f\n",min_C->Utilization,T->Utilization,Utilization_Bound);
+        // printf("%s(%d)-> Core: %d ", T->Task_Name,T->subnum,(min_C->Core_num>>1));
+        if(min_C->Utilization + T->Utilization <= Utilization_Bound)
+        {
+            // * !
+            Assign_task(T,min_C);
+            // printf("Normal\n");
+            if(min_C->pre_assigned)
+            {
+                Push_core(min_C,&pre_assigned_core);
+            }
+        }
+        else
+        {
+            // * !
+            task_info* Tail_T = &(task_list[curr_idx++]);
+            Task_split(T,Tail_T,min_C,&core_manager,&UQ);
+            Assign_task(T,min_C);
+            // printf("Split\n");
+        }
+    }
 
     // printf("-----------------------------------------------------------\n");
     // printf("-----------------------------------------------------------\n");
     // printf("-----------------------------------------------------------\n");
     
 
-    // printf("Core 0 Utilization : %.3f, Core 1 Utilization : %.3f \n" , core_manager.list[0]->Utilization, core_manager.list[1]->Utilization);
-    // fflush(stdout);
+    printf("Core 0 Utilization : %.3f, Core 1 Utilization : %.3f \n" , core_manager.list[0]->Utilization, core_manager.list[1]->Utilization);
+    fflush(stdout);
 
    
-    //* UART 송신 완료 대기
-    // uart_wait_tx_complete(uart0); // UART0 사용 
-    
+    // * UART 송신 완료 대기
+    uart_wait_tx_complete(uart0); // UART0 사용 
+    vTaskStartScheduler(); 
     
 
     while (true);
@@ -184,7 +165,7 @@ int main()
 
 /************************************************* PERIODIC TASKS ******************************************************/
 
-
+#if !Light
 void vTask0(void *pvParameters) 
 { 
     /****** Tick (10ms) 기준 Runtime, Period 부여 ******/
@@ -571,7 +552,158 @@ void vTask5(void *pvParameters)
         vTaskDelayUntil(&LastRequestTime, Period_tick);  
     }
 }
+#else
 
+void vTask0(void *pvParameters) 
+{
+    /****** Tick (10ms) 기준 Runtime, Period 부여 ******/
+
+    /*******************************/
+    static const uint8_t task_num= 0;
+    /*******************************/
+    uint16_t Run_tick = 20;
+    TickType_t Deadline;
+    TickType_t Period_tick = 100;
+
+    printf("TASK0 EXECUTE AT CORE %d\n",get_core_num());
+    TickType_t LastRequestTime = xTaskGetTickCount();
+
+    vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick
+    
+
+    while (true) 
+    {
+
+        
+        Deadline = LastRequestTime + Period_tick; // 최신 요청 기준 Deadline 업데이트
+
+        /*******************************************************************************************************/
+        printf("%d : Task0 execute on Core %d Deadline : %d \n", xTaskGetTickCount(),get_core_num(),Deadline);
+        for(int i=0;i<Run_tick;i++)
+        {
+            sleep_ms(10); // 1 Tick
+        }
+
+        printf("%d: Complete Task0 (< %d) \n",xTaskGetTickCount(),Deadline);
+        /*******************************************************************************************************/
+
+        vTaskDelayUntil(&LastRequestTime, Period_tick);  
+    }
+}
+
+void vTask1(void *pvParameters) 
+{
+    /****** Tick (10ms) 기준 Runtime, Period 부여 ******/
+
+    /*******************************/
+    static const uint8_t task_num= 1;
+    /*******************************/
+    uint16_t Run_tick = 20;
+    TickType_t Deadline;
+    TickType_t Period_tick = 100;
+
+    printf("TASK1 EXECUTE AT CORE %d\n",get_core_num());
+    TickType_t LastRequestTime = xTaskGetTickCount();
+
+    vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick
+    
+
+    while (true) 
+    {
+
+        
+        Deadline = LastRequestTime + Period_tick; // 최신 요청 기준 Deadline 업데이트
+
+        /*******************************************************************************************************/
+        printf("%d : Task1 execute on Core %d Deadline : %d \n", xTaskGetTickCount(),get_core_num(),Deadline);
+        for(int i=0;i<Run_tick;i++)
+        {
+            sleep_ms(10); // 1 Tick
+        }
+
+        printf("%d: Complete Task1 (< %d) \n",xTaskGetTickCount(),Deadline);
+        /*******************************************************************************************************/
+
+        vTaskDelayUntil(&LastRequestTime, Period_tick);  
+    }
+}
+
+void vTask2(void *pvParameters) 
+{
+    /****** Tick (10ms) 기준 Runtime, Period 부여 ******/
+
+    /*******************************/
+    static const uint8_t task_num= 2;
+    /*******************************/
+    uint16_t Run_tick = 15;
+    TickType_t Deadline;
+    TickType_t Period_tick =100;
+
+    printf("TASK2 EXECUTE AT CORE %d\n",get_core_num());
+    TickType_t LastRequestTime = xTaskGetTickCount();
+
+    vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick
+    
+
+    while (true) 
+    {
+
+        
+        Deadline = LastRequestTime + Period_tick; // 최신 요청 기준 Deadline 업데이트
+
+        /*******************************************************************************************************/
+        printf("%d : Task2 execute on Core %d Deadline : %d \n", xTaskGetTickCount(),get_core_num(),Deadline);
+        for(int i=0;i<Run_tick;i++)
+        {
+            sleep_ms(10); // 1 Tick
+        }
+
+        printf("%d: Complete Task2 (< %d) \n",xTaskGetTickCount(),Deadline);
+        /*******************************************************************************************************/
+
+        vTaskDelayUntil(&LastRequestTime, Period_tick);  
+    }
+}
+
+void vTask3(void *pvParameters) 
+{
+    /****** Tick (10ms) 기준 Runtime, Period 부여 ******/
+
+    /*******************************/
+    static const uint8_t task_num= 3;
+    /*******************************/
+    uint16_t Run_tick = 3;
+    TickType_t Deadline;
+    TickType_t Period_tick = 100;
+
+    printf("TASK3 EXECUTE AT CORE %d\n",get_core_num());
+    TickType_t LastRequestTime = xTaskGetTickCount();
+
+    vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick
+    
+
+    while (true) 
+    {
+
+        
+        Deadline = LastRequestTime + Period_tick; // 최신 요청 기준 Deadline 업데이트
+
+        /*******************************************************************************************************/
+        printf("%d : Task3 execute on Core %d Deadline : %d \n", xTaskGetTickCount(),get_core_num(),Deadline);
+        for(int i=0;i<Run_tick;i++)
+        {
+            sleep_ms(10); // 1 Tick
+        }
+
+        printf("%d: Complete Task3 (< %d) \n",xTaskGetTickCount(),Deadline);
+        /*******************************************************************************************************/
+
+        vTaskDelayUntil(&LastRequestTime, Period_tick);  
+    }
+}
+
+
+#endif
 
 
 

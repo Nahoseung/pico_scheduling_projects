@@ -62,6 +62,7 @@
 #define configUSE_PASSIVE_IDLE_HOOK               0
 // #define LIB_PICO_MULTICORE                        1
 #define LIB_PICO_SYNC                             1
+// #define configTOTAL_HEAP_SIZE                        10240U
 
 #ifndef configSMP_SPINLOCK_0
     #define configSMP_SPINLOCK_0    PICO_SPINLOCK_ID_OS1
@@ -87,7 +88,7 @@
 
 #define configSUPPORT_STATIC_ALLOCATION              1
 #define configSUPPORT_DYNAMIC_ALLOCATION             1
-#define configTOTAL_HEAP_SIZE                        4096U
+#define configTOTAL_HEAP_SIZE                        10240U
 #define configAPPLICATION_ALLOCATED_HEAP             0
 #define configSTACK_ALLOCATION_FROM_SEPARATE_HEAP    0
 #define configUSE_MINI_LIST_ITEM                     0

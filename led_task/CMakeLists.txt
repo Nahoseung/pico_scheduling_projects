@@ -53,6 +53,7 @@ target_include_directories(FreeRTOS-Kernel PUBLIC
     ${PICO_SDK_PATH}/src/rp2_common/hardware_clocks/include
     ${PICO_SDK_PATH}/src/rp2_common/hardware_exception/include
     ${PICO_SDK_PATH}/src/rp2_common/hardware_base/include
+    # ${PICO_SDK_PATH}/src/rp2_common/hardware_irq/include
 
     ${CMAKE_BINARY_DIR}/generated/pico_base
 )
