@@ -19,10 +19,8 @@ typedef struct
 {
     TaskFunction_t Task_Code;
     char*  Task_Name;
-
     uint16_t Runtime;
     TickType_t Period;
-
     UBaseType_t Core_Affinity;
     uint8_t priority;
     uint8_t subnum;
@@ -32,6 +30,7 @@ typedef struct
 
     bool Dependency;
     bool Heavy;
+
     float Utilization;
 }task_info;
 
@@ -79,6 +78,7 @@ task_info* Pop_task(task_stack* task_stack_ptr);
 void Push_task(task_info* T,task_stack* task_stack_ptr);
 void Print_task(task_info* T);
 bool simple_test(task_info* T, int num_of_Lower_T ,core_stack* core_stack_ptr,task_stack* task_stack_ptr);
+task_info* new_task(int* idx,task_info task_list[]);
 
 /************TASK**************/
 
@@ -96,7 +96,6 @@ core_info* get_min_core(core_stack* core_stack_ptr);
 
 /************Core**************/
 
-/************** NOT YET ***************/
-void print_core();
+
 
 #endif /*TASK_MANAGER_H*/

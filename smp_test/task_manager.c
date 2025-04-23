@@ -66,7 +66,7 @@ float init_task(task_stack* task_stack_ptr, task_info task_list[],core_stack* co
             task->Heavy = true;
         }
         
-        TaskHandle_t flag = xTaskCreate(task->Task_Code,task->Task_Name,STACK_SIZE,NULL,
+        xTaskCreate(task->Task_Code,task->Task_Name,STACK_SIZE,NULL,
             task->priority,&(task->my_ptr));
 
         // * Temp : 생성된 Task를 설정된 Core에 할당
@@ -79,14 +79,6 @@ float init_task(task_stack* task_stack_ptr, task_info task_list[],core_stack* co
 
 bool Task_split(task_info* T,task_info* Tail_T, core_info* C, core_stack* core_stack_ptr,task_stack* task_stack_ptr)
 {
-
-    // if( ++ (task_stack_ptr-> top) >= MAX_NUM_TASKS )
-    // {
-    //     printf("NO MORE SPLIT OVER FLOW \n");
-    //     return false;
-    // }
-
-    // int Tail_idx = task_stack_ptr->top;
 
     task_info* Body_task = T;
     task_info* Tail_task = Tail_T;
@@ -102,7 +94,6 @@ bool Task_split(task_info* T,task_info* Tail_T, core_info* C, core_stack* core_s
     // * Utilization에 따른 Runtime 조정
     Body_task->Utilization = (core_stack_ptr->Utilization_Bound) - (C->Utilization);
     Body_task->Runtime = (Body_task->Utilization) * (Body_task->Period);
-    //  printf("%f = %f - %f \n", Body_task->Utilization,core_stack_ptr->Utilization_Bound, C->Utilization);
 
     Tail_task->Utilization = Origin_U - Body_task->Utilization;
     Tail_task->Runtime = Origin_R - Body_task->Runtime;
@@ -132,8 +123,6 @@ void Assign_task(task_info* T,core_info* C)
 
     vTaskCoreAffinitySet(task_ptr, Core_num);
     C->Utilization += T->Utilization;
-    // printf("ASSIGN %s to Core %d \n", T->Task_Name,(C->Core_num>>1));
-    // core_stack_ptr->list[(Core_num >> 1)]->Utilization += T->Utilization;
 }
 
 
@@ -193,6 +182,17 @@ bool simple_test(task_info* T, int num_of_Lower_T ,core_stack* core_stack_ptr,ta
     }
 
     return true;
+}
+
+task_info* new_task(int* idx,task_info task_list[])
+{
+    if((*idx) >= MAX_NUM_TASKS)
+    {
+        printf("NO MORE NEW TASK OVERFLOW \n");
+        return NULL;
+    }
+    
+    return &task_list[*idx++];
 }
 /***********************TASK***************************/
 
