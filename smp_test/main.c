@@ -45,6 +45,43 @@ core_stack pre_assigned_core;
 #endif
 
 
+bool schedulable = true;
+void MonitorTask(void*pvParameters)
+{
+    
+    uint32_t period_list[NUM_OF_TASK] ;
+
+    for(int i=0;i <NUM_OF_TASK;i++)
+    {
+        period_list[i]= task_list[i].Period;
+    }
+    uint32_t lcm_ticks = calculate_lcm(period_list);
+    printf("MONITOR CREATED LCM : %d\n",lcm_ticks);
+    // printf("lcm %d\n", lcm_ticks);
+    
+    TickType_t start = xTaskGetTickCount();
+    vTaskDelay(lcm_ticks + 1);
+
+    if (!schedulable)
+    {
+        printf("NOT SCHEDULABLE\n");
+    }
+
+    else
+    {
+        printf("ALL TASKS SCHEDULABLE\n");       
+    }
+
+    for(int i=0; i<MAX_NUM_TASKS;i++)
+    {
+        vTaskDelete(task_list[i].my_ptr);
+    }
+
+    vTaskDelete(NULL);
+
+
+}
+
 int main() 
 {
     stdio_init_all(); 
@@ -130,6 +167,7 @@ int main()
     }
 
     printf("Core 0 Utilization : %.3f, Core 1 Utilization : %.3f \n" , core_manager.list[0]->Utilization, core_manager.list[1]->Utilization);
+    xTaskCreate(MonitorTask,"MONITOR",STACK_SIZE,NULL,10,NULL);
     vTaskStartScheduler(); 
     
 
@@ -179,6 +217,7 @@ void vTask0(void *pvParameters)
         {
             printf("OVERFLOW %s(%d) at Core %d\n",Task.Task_Name,Task.subnum,get_core_num());
             printf("GOOD BYE Core %d", get_core_num());
+            schedulable=false;
             return;
         }
 
@@ -233,6 +272,7 @@ void vTask1(void *pvParameters)
         {
             printf("OVERFLOW %s(%d) at Core %d\n",Task.Task_Name,Task.subnum,get_core_num());
             printf("GOOD BYE Core %d", get_core_num());
+            schedulable=false;
             return;
         }
 
@@ -286,6 +326,7 @@ void vTask2(void *pvParameters)
         {
             printf("OVERFLOW %s(%d) at Core %d\n",Task.Task_Name,Task.subnum,get_core_num());
             printf("GOOD BYE Core %d", get_core_num());
+            schedulable=false;
             return;
         }
 
@@ -339,6 +380,7 @@ void vTask3(void *pvParameters)
         {
             printf("OVERFLOW %s(%d) at Core %d\n",Task.Task_Name,Task.subnum,get_core_num());
             printf("GOOD BYE Core %d", get_core_num());
+            schedulable=false;
             return;
         }
 
@@ -388,6 +430,7 @@ void vTask4(void *pvParameters)
         {
             printf("OVERFLOW %s(%d) at Core %d\n",Task.Task_Name,Task.subnum,get_core_num());
             printf("GOOD BYE Core %d", get_core_num());
+            schedulable=false;
             return;
         }
 
@@ -438,6 +481,7 @@ void vTask5(void *pvParameters)
         {
             printf("OVERFLOW %s(%d) at Core %d\n",Task.Task_Name,Task.subnum,get_core_num());
             printf("GOOD BYE Core %d", get_core_num());
+            schedulable=false;
             return;
         }
 
