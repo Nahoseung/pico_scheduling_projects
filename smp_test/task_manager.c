@@ -29,7 +29,7 @@ float get_Utilization()
 {
     float n = NUM_OF_TASK;
     float U = n * (pow(2.0, 1.0 / n) - 1);
-    printf("For %d tasks Utilization Bound is :  %.4f \n",NUM_OF_TASK, U);
+    // printf("For %d tasks Utilization Bound is :  %.4f \n",NUM_OF_TASK, U);
     return U;
 }
 float get_lighttask(float U)
@@ -109,7 +109,7 @@ bool Task_split(task_info* T,task_info* Tail_T, core_info* C, core_stack* core_s
 
     // * Body Task 재 설정
     Body_task->splitted_ptr = Tail_task->my_ptr;
-
+    printf("SPLIT %s(%d)(-> C %d ) -> TAIL : %s(%d) \n", Body_task->Task_Name,Body_task->subnum,(C->Core_num >>1),Tail_task->Task_Name,Tail_task->subnum);
     // * 쪼개진 Tail task는 UQ로 PUSH
     Push_task(Tail_task,task_stack_ptr);
 
@@ -187,13 +187,18 @@ bool simple_test(task_info* T, int num_of_Lower_T ,core_stack* core_stack_ptr,ta
 
 task_info* new_task(int* idx,task_info task_list[])
 {
+    printf("%d : ",*idx);
     if((*idx) >= MAX_NUM_TASKS)
     {
         printf("NO MORE NEW TASK OVERFLOW \n");
         return NULL;
     }
+    task_info* new = &task_list[*idx];
+    int temp_idx = *idx;
+    *idx = ++temp_idx;
     
-    return &task_list[*idx++];
+    
+    return new;
 }
 /***********************TASK***************************/
 

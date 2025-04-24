@@ -7,6 +7,7 @@
 
 #define sync_R 10  // * vTaskDelay(pdMS_TO_TICKS(sync_R));  delay 1tick
 #define Light 0
+#define monitor 1
 
 void vTask0(void* pvParameters);
 void vTask1(void* pvParameters);
@@ -22,12 +23,14 @@ task_info task_list [MAX_NUM_TASKS] =
         /* Code /  Name  / Run / Period / Core / Priority / Subnum / my_ptr / splitted_ptr / Dependency / Heavy */
 
         {vTask0, "TASK 0",  40, 100,  Core0, 5,1, NULL, NULL, false,false}, 
-        {vTask1, "TASK 1",  40, 100,  Core1, 4,1, NULL, NULL, false,false}, 
-        {vTask2, "TASK 2",  40, 100,  Core1, 3,1, NULL, NULL, false,false}, 
+        {vTask1, "TASK 1",  120, 200,  Core1, 4,1, NULL, NULL, false,false}, 
+        {vTask2, "TASK 2",  40, 200,  Core1, 3,1, NULL, NULL, false,false}, 
+        {vTask3, "TASK 3",  50, 200,  Core0, 2,1, NULL, NULL, false,false},  
 
-        // * Extra Tasks 
-        {vTask3, 0,},   
-        // {vTask4, "TASK 4",   20,  400,  Core0, 1,1, NULL, NULL,  false,false}
+        // * Extra Tasks  
+        {vTask4, "TASK 4",   0,  200,  Core0, 1,1, NULL, NULL,  false,false}
+
+        
         // {vTask5, "Extra T",   0,   0,  0, 1,1, NULL, NULL,  false,false}
 };
 task_stack task_manager;
@@ -88,7 +91,7 @@ int main()
 
     sleep_ms(5000);
 
-    printf("START KERNEL at : CORE %d \n",get_core_num());
+    // printf("START KERNEL at : CORE %d \n",get_core_num());
     fflush(stdout);
 
     //* Core ptr을 STACK에 PUSH
@@ -117,6 +120,7 @@ int main()
         if(T->Heavy&&simple_test(T,i,&core_manager,&task_manager))
         {
             core_info* C = Pop_core(&core_manager);
+            // printf("T: %s -> C: %d (%f) \n", T->Task_Name,C->Core_num,C->Utilization);
             Assign_task(T,C);
             C->pre_assigned = true;
             Push_core(C,&pre_assigned_core);
@@ -130,14 +134,14 @@ int main()
     /* NORMAL-ASSIGN */
     while(!T_is_empty(&UQ))
     {
+        /* SELCECT CORE */
         core_info* min_C = get_min_core(&core_manager);
         task_info* T = Pop_task(&UQ);
 
-        /* SELCECT CORE */
+        
         if(min_C->Utilization > Utilization_Bound)
         {
             printf("NO MORE NORMAL PROCESSOR : ");
-            fflush(stdout);
             min_C = Pop_core(&pre_assigned_core);
             if(min_C->Utilization >= Utilization_Bound)
             {
@@ -147,6 +151,7 @@ int main()
             }
         }
 
+        // printf("T: %s -> C: %d (%f) \n", T->Task_Name,min_C->Core_num,min_C->Utilization);
         if(min_C->Utilization + T->Utilization <= Utilization_Bound)
         {
             Assign_task(T,min_C);
@@ -166,8 +171,10 @@ int main()
         }
     }
 
-    printf("Core 0 Utilization : %.3f, Core 1 Utilization : %.3f \n" , core_manager.list[0]->Utilization, core_manager.list[1]->Utilization);
+    // printf("Core 0 Utilization : %.3f, Core 1 Utilization : %.3f \n" , core_manager.list[0]->Utilization, core_manager.list[1]->Utilization);
+    #if monitor
     xTaskCreate(MonitorTask,"MONITOR",STACK_SIZE,NULL,10,NULL);
+    #endif
     vTaskStartScheduler(); 
     
 
