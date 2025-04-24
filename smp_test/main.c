@@ -153,7 +153,7 @@ void vTask0(void *pvParameters)
     bool flag=false;
 
 
-    // printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
+    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
 
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
     
@@ -206,7 +206,7 @@ void vTask1(void *pvParameters)
 
 
 
-    // printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
+    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
 
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
     
@@ -258,7 +258,7 @@ void vTask2(void *pvParameters)
     TickType_t LastRequestTime= xTaskGetTickCount();
     bool flag=false;
 
-    // printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
+    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
 
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
     
@@ -312,7 +312,7 @@ void vTask3(void *pvParameters)
     TickType_t LastRequestTime = xTaskGetTickCount();
     bool flag=false;
 
-    // printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
+    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
 
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
     

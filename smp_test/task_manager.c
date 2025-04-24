@@ -3,6 +3,8 @@
 
 bool Periodic_Job (uint16_t Runtime, uint16_t Deadline)
 {
+    TickType_t start = xTaskGetTickCount();
+    TickType_t end = start + Runtime;
     /********* CHECK DEADLINE ********/
     if(xTaskGetTickCount() + Runtime >= Deadline)
     {
@@ -10,10 +12,12 @@ bool Periodic_Job (uint16_t Runtime, uint16_t Deadline)
     }
 
     /********* RUN TASK ********/
-    for(int i=0;i<Runtime;i++)
-    {
-        sleep_ms(10); // 1 Tick
-    }
+    // for(int i=0;i<Runtime;i++)
+    // {
+    //     sleep_ms(10); // 1 Tick
+    // }
+
+    while(xTaskGetTickCount() <end);
 
     /********* CHECK DEADLINE ********/
     if(xTaskGetTickCount()> Deadline)
@@ -28,7 +32,7 @@ float get_Utilization()
 {
     float n = NUM_OF_TASK;
     float U = n * (pow(2.0, 1.0 / n) - 1);
-    // printf("For %d tasks Utilization Bound is :  %.4f \n",NUM_OF_TASK, U);
+    printf("For %d tasks Utilization Bound is :  %.4f \n",NUM_OF_TASK, U);
     return U;
 }
 float get_lighttask(float U)
