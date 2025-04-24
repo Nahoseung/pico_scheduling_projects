@@ -96,6 +96,7 @@ core_info* get_min_core(core_stack* core_stack_ptr);
 
 /************Core**************/
 
-
-
+uint32_t gcd(uint32_t a, uint32_t b);
+uint32_t lcm(uint32_t a, uint32_t b);
+uint32_t calculate_lcm(uint32_t periods[]);
 #endif /*TASK_MANAGER_H*/

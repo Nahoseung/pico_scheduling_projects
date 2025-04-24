@@ -3,21 +3,18 @@
 
 bool Periodic_Job (uint16_t Runtime, uint16_t Deadline)
 {
-    TickType_t start = xTaskGetTickCount();
-    TickType_t end = start + Runtime;
+    TickType_t end_tick = xTaskGetTickCount() + Runtime;
+
     /********* CHECK DEADLINE ********/
-    if(xTaskGetTickCount() + Runtime >= Deadline)
+
+    if(end_tick > Deadline)
     {
         return false;
     }
 
     /********* RUN TASK ********/
-    // for(int i=0;i<Runtime;i++)
-    // {
-    //     sleep_ms(10); // 1 Tick
-    // }
 
-    while(xTaskGetTickCount() <end);
+    while(xTaskGetTickCount()<end_tick);
 
     /********* CHECK DEADLINE ********/
     if(xTaskGetTickCount()> Deadline)
@@ -268,3 +265,27 @@ core_info* get_min_core(core_stack* core_stack_ptr)
 }
 
 /***********************CORE***************************/
+
+// 최대공약수 계산 (유클리드 알고리즘)
+uint32_t gcd(uint32_t a, uint32_t b) {
+    while (b != 0) {
+        uint32_t temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+// 두 수의 최소공배수 계산
+uint32_t lcm(uint32_t a, uint32_t b) {
+    return (a * b) / gcd(a, b);
+}
+
+// 여러 Task의 주기 배열로 LCM 계산
+uint32_t calculate_lcm(uint32_t periods[]) {
+    uint32_t result = periods[0];
+    for (int i = 1; i < NUM_OF_TASK; i++) {
+        result = lcm(result, periods[i]);
+    }
+    return result;
+}
