@@ -4,6 +4,7 @@
 bool Periodic_Job (uint16_t Runtime, uint16_t Deadline)
 {
     TickType_t end_tick = xTaskGetTickCount() + Runtime;
+    TickType_t counter = 0;
 
     /********* CHECK DEADLINE ********/
 
@@ -14,7 +15,14 @@ bool Periodic_Job (uint16_t Runtime, uint16_t Deadline)
 
     /********* RUN TASK ********/
 
-    while(xTaskGetTickCount()<end_tick);
+    for(int i=0; i<Runtime;i++)
+    {
+        counter = xTaskGetTickCount()+1;
+        while(xTaskGetTickCount() < counter)
+        {
+            __asm volatile("nop");
+        }
+    }
 
     /********* CHECK DEADLINE ********/
     if(xTaskGetTickCount()> Deadline)
@@ -29,13 +37,12 @@ float get_Utilization()
 {
     float n = NUM_OF_TASK;
     float U = n * (pow(2.0, 1.0 / n) - 1);
-    // printf("For %d tasks Utilization Bound is :  %.4f \n",NUM_OF_TASK, U);
+    printf("For %d tasks Utilization Bound is :  %.4f \n",NUM_OF_TASK, U);
     return U;
 }
 float get_lighttask(float U)
 {
     float Light_bound = U/(1+U);
-    // printf("For %d tasks Light_Bound is :  %.4f \n",NUM_OF_TASK, Light_bound);
     return Light_bound;
 }
 
@@ -109,7 +116,6 @@ bool Task_split(task_info* T,task_info* Tail_T, core_info* C, core_stack* core_s
 
     // * Body Task 재 설정
     Body_task->splitted_ptr = Tail_task->my_ptr;
-    printf("SPLIT %s(%d)(-> C %d ) -> TAIL : %s(%d) \n", Body_task->Task_Name,Body_task->subnum,(C->Core_num >>1),Tail_task->Task_Name,Tail_task->subnum);
     // * 쪼개진 Tail task는 UQ로 PUSH
     Push_task(Tail_task,task_stack_ptr);
 
@@ -187,7 +193,7 @@ bool simple_test(task_info* T, int num_of_Lower_T ,core_stack* core_stack_ptr,ta
 
 task_info* new_task(int* idx,task_info task_list[])
 {
-    printf("%d : ",*idx);
+   
     if((*idx) >= MAX_NUM_TASKS)
     {
         printf("NO MORE NEW TASK OVERFLOW \n");
