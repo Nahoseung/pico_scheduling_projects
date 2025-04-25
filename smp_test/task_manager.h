@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
-#define NUM_OF_TASK 4
+#define NUM_OF_TASK 5
 #define MAX_NUM_TASKS NUM_OF_TASK + configNUMBER_OF_CORES -1 
 #define STACK_SIZE 256
 

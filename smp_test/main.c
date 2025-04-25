@@ -7,6 +7,8 @@
 
 #define sync_R 10  // * vTaskDelay(pdMS_TO_TICKS(sync_R));  delay 1tick
 #define monitor 1
+#define debugging
+#define SPA2 0
 
 void vTask0(void* pvParameters);
 void vTask1(void* pvParameters);
@@ -20,13 +22,13 @@ task_info task_list [MAX_NUM_TASKS] =
 {
         /* Code /  Name  / Run / Period / Core / Priority / Subnum / my_ptr / splitted_ptr / Dependency / Heavy */
 
-        {vTask0, "TASK 0",  40, 100,  Core0, 5,1, NULL, NULL, false,false}, 
-        {vTask1, "TASK 1",  120, 200,  Core1, 4,1, NULL, NULL, false,false}, 
-        {vTask2, "TASK 2",  40, 200,  Core1, 3,1, NULL, NULL, false,false}, 
-        {vTask3, "TASK 3",  50, 200,  Core0, 2,1, NULL, NULL, false,false},  
-        // * Extra Tasks  
-        {vTask4, "TASK 4",   0,  200,  Core0, 1,1, NULL, NULL,  false,false}
-        // {vTask5, "Extra T",   0,   0,  0, 1,1, NULL, NULL,  false,false}
+        {vTask0, "TASK 0",  2, 5,  Core0, 5,1, NULL, NULL, false,false}, 
+        {vTask1, "TASK 1",  3, 10,  Core1, 4,1, NULL, NULL, false,false}, 
+        {vTask2, "TASK 2",  38, 50,  Core1, 3,1, NULL, NULL, false,false},
+        {vTask3, "TASK 3",  1, 100,  Core0, 2,1, NULL, NULL, false,false},
+        {vTask4, "TASK 4",  1, 100,  Core0, 1,1, NULL, NULL,  false,false},
+        // * Extra Tasks 
+        {vTask5, "Extra T",   0,   0,  0, 1,1, NULL, NULL,  false,false}
 };
 task_stack task_manager;
 task_stack UQ;
@@ -41,10 +43,10 @@ core_info core_list[configNUMBER_OF_CORES] =
 core_stack core_manager;
 core_stack pre_assigned_core;
 
-
 bool schedulable = true;
 void MonitorTask(void*pvParameters)
 {
+   
     
     uint32_t period_list[NUM_OF_TASK] ;
 
@@ -53,6 +55,7 @@ void MonitorTask(void*pvParameters)
         period_list[i]= task_list[i].Period;
     }
     uint32_t lcm_ticks = calculate_lcm(period_list);
+    printf("MONITOR ACTIVATED LCM: %d\n",lcm_ticks);
     
     TickType_t start = xTaskGetTickCount();
     vTaskDelay(lcm_ticks + 1);
@@ -83,7 +86,7 @@ int main()
 
     sleep_ms(5000);
 
-    printf("START KERNEL at : CORE %d \n",get_core_num());
+    // printf("START KERNEL at : CORE %d \n",get_core_num());
 
     #if monitor
     xTaskCreate(MonitorTask,"MONITOR",STACK_SIZE,NULL,10,NULL);
@@ -106,7 +109,7 @@ int main()
 
     /******************* SPA2 ALGORITHM **************************/
   
-
+    #if SPA2
     /* PRE-ASSIGN */
     for(int i=0; i < NUM_OF_TASK; i++)
     {
@@ -164,6 +167,37 @@ int main()
             Push_core(min_C,&pre_assigned_core);
         }
     }
+    #else
+
+    while(!T_is_empty(&task_manager))
+    {
+        /* SELCECT CORE */
+        core_info* min_C = get_min_core(&core_manager);
+        task_info* T = Pop_task(&task_manager);
+
+        if(min_C->Utilization >= Utilization_Bound)
+        {
+            printf("ALL PROCESSORS FULLY UTILIZED \n");
+            fflush(stdout);
+            break;
+        }
+        
+        // printf("T: %s -> C: %d (%f) \n", T->Task_Name,min_C->Core_num,min_C->Utilization);
+        if(min_C->Utilization + T->Utilization <= Utilization_Bound)
+        {
+            Assign_task(T,min_C);
+        }
+        
+        /* SPLIT */
+        else
+        {
+            task_info* Tail_T = new_task(&curr_idx,task_list);
+            Task_split(T,Tail_T,min_C,&core_manager,&task_manager);
+            Assign_task(T,min_C);
+        }
+    }
+
+    #endif
 
     printf("Core 0 Utilization : %.3f, Core 1 Utilization : %.3f \n" , core_manager.list[0]->Utilization, core_manager.list[1]->Utilization);
     
@@ -199,6 +233,8 @@ void run_task(task_info Task, TickType_t* LastRequestTime,TickType_t Deadline, b
         printf("%d: OVERFLOW %s(%d) at Core %d\n",xTaskGetTickCount(),Task.Task_Name,Task.subnum,get_core_num());
         printf("GOOD BYE Core %d", get_core_num());
         schedulable=false;
+
+        // * NEVER REACH
         while(true);
     }
 
@@ -227,7 +263,6 @@ void vTask0(void *pvParameters)
     printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
 
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
-    
     
     
     while (true) 
@@ -276,8 +311,7 @@ void vTask2(void *pvParameters)
 
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
     
-    
-    
+     
     while (true) 
     {
         run_task(Task,&LastRequestTime,Deadline,flag);

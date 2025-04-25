@@ -14,13 +14,15 @@ bool Periodic_Job (uint16_t Runtime, uint16_t Deadline)
     }
 
     /********* RUN TASK ********/
-
+    int j=0;
     for(int i=0; i<Runtime;i++)
     {
+        // * BUSY COUNTING
         counter = xTaskGetTickCount()+1;
         while(xTaskGetTickCount() < counter)
         {
-            __asm volatile("nop");
+            // __asm volatile("nop");
+            j++;
         }
     }
 
@@ -202,7 +204,7 @@ task_info* new_task(int* idx,task_info task_list[])
     task_info* new = &task_list[*idx];
     int temp_idx = *idx;
     *idx = ++temp_idx;
-    
+
     
     return new;
 }
