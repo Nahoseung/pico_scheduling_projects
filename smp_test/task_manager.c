@@ -1,36 +1,42 @@
 #include "task_manager.h"
 
 
-bool Periodic_Job (uint16_t Runtime, uint16_t Deadline)
+bool Periodic_Job (task_info T, uint16_t Deadline)
 {
-    TickType_t end_tick = xTaskGetTickCount() + Runtime;
+    TickType_t end_tick = xTaskGetTickCount() + T.Runtime;
     TickType_t counter = 0;
+
+    printf("%d : %s(%d) execute on Core %d Deadline : %d\n", xTaskGetTickCount(), T.Task_Name,T.subnum,get_core_num(),Deadline);
 
     /********* CHECK DEADLINE ********/
 
     if(end_tick > Deadline)
     {
+        printf("%d: OVERFLOW %s(%d) at Core %d\n",xTaskGetTickCount(),T.Task_Name,T.subnum,get_core_num());
+        printf("GOOD BYE Core %d", get_core_num());
         return false;
     }
 
     /********* RUN TASK ********/
-    int j=0;
-    for(int i=0; i<Runtime;i++)
+    for(int i=0; i<T.Runtime;i++)
     {
         // * BUSY COUNTING
         counter = xTaskGetTickCount()+1;
         while(xTaskGetTickCount() < counter)
         {
-            // __asm volatile("nop");
-            j++;
+            __asm volatile("nop");
         }
     }
 
     /********* CHECK DEADLINE ********/
     if(xTaskGetTickCount()> Deadline)
     {
+        printf("%d: OVERFLOW %s(%d) at Core %d\n",xTaskGetTickCount(),T.Task_Name,T.subnum,get_core_num());
+        printf("GOOD BYE Core %d", get_core_num());
         return false;
     }
+
+    printf("%d: Complete %s(%d) (< %d)\n",xTaskGetTickCount(),T.Task_Name,T.subnum,Deadline);
     return true;
 }
 

@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
-#define NUM_OF_TASK 5
+#define NUM_OF_TASK 7
 #define MAX_NUM_TASKS NUM_OF_TASK + configNUMBER_OF_CORES -1 
 #define STACK_SIZE 256
 
@@ -60,7 +60,7 @@ typedef struct
 
 
 
-bool Periodic_Job(uint16_t Runtime, uint16_t Deadline);
+
 
 /************TASK**************/
 
@@ -99,4 +99,6 @@ core_info* get_min_core(core_stack* core_stack_ptr);
 uint32_t gcd(uint32_t a, uint32_t b);
 uint32_t lcm(uint32_t a, uint32_t b);
 uint32_t calculate_lcm(uint32_t periods[]);
+
+bool Periodic_Job(task_info T, uint16_t Deadline);
 #endif /*TASK_MANAGER_H*/

@@ -8,7 +8,7 @@
 #define sync_R 10  // * vTaskDelay(pdMS_TO_TICKS(sync_R));  delay 1tick
 #define monitor 1
 #define debugging
-#define SPA2 0
+#define SPA2 1
 
 void vTask0(void* pvParameters);
 void vTask1(void* pvParameters);
@@ -16,19 +16,25 @@ void vTask2(void* pvParameters);
 void vTask3(void* pvParameters);
 void vTask4(void* pvParameters);
 void vTask5(void* pvParameters);
+void vTask6(void* pvParameters);
+void vTask7(void* pvParameters);
+// void vTask6(void* pvParameters);
 
 
 task_info task_list [MAX_NUM_TASKS] =
 {
         /* Code /  Name  / Run / Period / Core / Priority / Subnum / my_ptr / splitted_ptr / Dependency / Heavy */
 
-        {vTask0, "TASK 0",  2, 5,  Core0, 5,1, NULL, NULL, false,false}, 
-        {vTask1, "TASK 1",  3, 10,  Core1, 4,1, NULL, NULL, false,false}, 
-        {vTask2, "TASK 2",  38, 50,  Core1, 3,1, NULL, NULL, false,false},
-        {vTask3, "TASK 3",  1, 100,  Core0, 2,1, NULL, NULL, false,false},
-        {vTask4, "TASK 4",  1, 100,  Core0, 1,1, NULL, NULL,  false,false},
+        {vTask0, "TASK 0",  3, 30,  Core0, 7,1, NULL, NULL, false,false}, 
+        {vTask1, "TASK 1",  2, 30, Core1, 6,1, NULL, NULL, false,false}, 
+        {vTask2, "TASK 2",  3, 30, Core1, 5,1, NULL, NULL, false,false},
+        {vTask3, "TASK 3",  8, 35, Core0, 4,1, NULL, NULL, false,false},
+        {vTask4, "TASK 4",  36,  50, Core0, 3,1, NULL, NULL,  false,false},
+        {vTask5, "TASK 5",  12, 100,  0, 2,1, NULL, NULL,  false,false},
+        {vTask6, "TASK 6",  12, 100,  0, 1,1, NULL, NULL,  false,false},
+
         // * Extra Tasks 
-        {vTask5, "Extra T",   0,   0,  0, 1,1, NULL, NULL,  false,false}
+        {vTask7, "Extra T",   0,   0,  0, 1,1, NULL, NULL,  false,false},
 };
 task_stack task_manager;
 task_stack UQ;
@@ -199,7 +205,7 @@ int main()
 
     #endif
 
-    printf("Core 0 Utilization : %.3f, Core 1 Utilization : %.3f \n" , core_manager.list[0]->Utilization, core_manager.list[1]->Utilization);
+    printf("Core 0 Utilization : %.4f, Core 1 Utilization : %.4f \n" , core_manager.list[0]->Utilization, core_manager.list[1]->Utilization);
     
     vTaskStartScheduler(); 
     
@@ -223,17 +229,12 @@ void run_task(task_info Task, TickType_t* LastRequestTime,TickType_t Deadline, b
     Deadline = *(LastRequestTime) + Task.Period; // 최신 요청 기준 Deadline 업데이트
 
     /* RUN */
-    printf("%d : %s(%d) execute on Core %d Deadline : %d\n", xTaskGetTickCount(), Task.Task_Name,Task.subnum,get_core_num(),Deadline);
-    flag = Periodic_Job(Task.Runtime,Deadline);
-
+    flag = Periodic_Job(Task,Deadline);
 
     /* OVERFLOW CHECK*/
     if(!flag)
     {
-        printf("%d: OVERFLOW %s(%d) at Core %d\n",xTaskGetTickCount(),Task.Task_Name,Task.subnum,get_core_num());
-        printf("GOOD BYE Core %d", get_core_num());
         schedulable=false;
-
         // * NEVER REACH
         while(true);
     }
@@ -244,7 +245,7 @@ void run_task(task_info Task, TickType_t* LastRequestTime,TickType_t Deadline, b
         vTaskResume(Task.splitted_ptr);
     }
 
-    printf("%d: Complete %s(%d) (< %d)\n",xTaskGetTickCount(),Task.Task_Name,Task.subnum,Deadline);
+    
     vTaskDelayUntil(LastRequestTime, Task.Period);  
 }
 
@@ -382,6 +383,49 @@ void vTask5(void *pvParameters)
     printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
 
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
+    
+    while (true) 
+    {
+        run_task(Task,&LastRequestTime,Deadline,flag);
+    }
+}
+void vTask6(void *pvParameters) 
+{ 
+    /*************************************/
+    static const uint8_t task_num= 6;
+    task_info Task = task_list[task_num];
+    /*************************************/
+    TickType_t Deadline;
+    TickType_t LastRequestTime= xTaskGetTickCount();
+    bool flag=false;
+
+
+    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
+
+    vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
+    
+    
+    while (true) 
+    {
+        run_task(Task,&LastRequestTime,Deadline,flag);
+    }
+}
+
+void vTask7(void *pvParameters) 
+{ 
+    /*************************************/
+    static const uint8_t task_num= 7;
+    task_info Task = task_list[task_num];
+    /*************************************/
+    TickType_t Deadline;
+    TickType_t LastRequestTime= xTaskGetTickCount();
+    bool flag=false;
+
+
+    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
+
+    vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
+    
     
     while (true) 
     {
