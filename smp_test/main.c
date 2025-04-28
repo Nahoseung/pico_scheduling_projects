@@ -50,11 +50,12 @@ core_stack core_manager;
 core_stack pre_assigned_core;
 
 bool schedulable = true;
+
 void MonitorTask(void*pvParameters)
 {
    
     
-    uint32_t period_list[NUM_OF_TASK] ;
+    int period_list[NUM_OF_TASK] ;
 
     for(int i=0;i <NUM_OF_TASK;i++)
     {
@@ -92,8 +93,6 @@ int main()
 
     sleep_ms(5000);
 
-    // printf("START KERNEL at : CORE %d \n",get_core_num());
-
     #if monitor
     xTaskCreate(MonitorTask,"MONITOR",STACK_SIZE,NULL,10,NULL);
     #endif
@@ -123,7 +122,6 @@ int main()
         if(T->Heavy&&simple_test(T,i,&core_manager,&task_manager))
         {
             core_info* C = Pop_core(&core_manager);
-            // printf("T: %s -> C: %d (%f) \n", T->Task_Name,C->Core_num,C->Utilization);
             Assign_task(T,C);
             C->pre_assigned = true;
             Push_core(C,&pre_assigned_core);
@@ -153,8 +151,6 @@ int main()
             }
         }
 
-        // printf("T: %s -> C: %d (%f) \n", T->Task_Name,min_C->Core_num,min_C->Utilization);
-
         if(min_C->Utilization + T->Utilization <= Utilization_Bound)
         {
             Assign_task(T,min_C);
@@ -173,8 +169,8 @@ int main()
             Push_core(min_C,&pre_assigned_core);
         }
     }
-    #else
 
+    #else
     while(!T_is_empty(&task_manager))
     {
         /* SELCECT CORE */
@@ -235,7 +231,6 @@ void run_task(task_info Task, TickType_t* LastRequestTime,TickType_t Deadline, b
     if(!flag)
     {
         schedulable=false;
-        // * NEVER REACH
         while(true);
     }
 
@@ -244,7 +239,6 @@ void run_task(task_info Task, TickType_t* LastRequestTime,TickType_t Deadline, b
 
         vTaskResume(Task.splitted_ptr);
     }
-
     
     vTaskDelayUntil(LastRequestTime, Task.Period);  
 }
@@ -262,7 +256,6 @@ void vTask0(void *pvParameters)
 
 
     printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
-
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
     
     
@@ -283,12 +276,9 @@ void vTask1(void *pvParameters)
     TickType_t LastRequestTime= xTaskGetTickCount();
     bool flag=false;
 
-
     printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
 
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
-    
-    
     
     while (true) 
     {
@@ -335,7 +325,6 @@ void vTask3(void *pvParameters)
     printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
 
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
-    
     
     
     while (true) 

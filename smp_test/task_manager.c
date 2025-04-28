@@ -3,16 +3,17 @@
 
 bool Periodic_Job (task_info T, uint16_t Deadline)
 {
-    TickType_t end_tick = xTaskGetTickCount() + T.Runtime;
+    TickType_t curr_tick = xTaskGetTickCount();
+
+    TickType_t end_tick = curr_tick + T.Runtime;
     TickType_t counter = 0;
 
-    printf("%d : %s(%d) execute on Core %d Deadline : %d\n", xTaskGetTickCount(), T.Task_Name,T.subnum,get_core_num(),Deadline);
+    printf("%d : %s(%d) execute on Core %d Deadline : %d\n", curr_tick, T.Task_Name,T.subnum,get_core_num(),Deadline);
 
     /********* CHECK DEADLINE ********/
-
     if(end_tick > Deadline)
     {
-        printf("%d: OVERFLOW %s(%d) at Core %d\n",xTaskGetTickCount(),T.Task_Name,T.subnum,get_core_num());
+        printf("%d: OVERFLOW %s(%d) at Core %d\n",curr_tick,T.Task_Name,T.subnum,get_core_num());
         printf("GOOD BYE Core %d", get_core_num());
         return false;
     }
@@ -21,22 +22,25 @@ bool Periodic_Job (task_info T, uint16_t Deadline)
     for(int i=0; i<T.Runtime;i++)
     {
         // * BUSY COUNTING
+        taskENTER_CRITICAL();
         counter = xTaskGetTickCount()+1;
         while(xTaskGetTickCount() < counter)
         {
             __asm volatile("nop");
         }
+        taskEXIT_CRITICAL();
+        // sleep_ms(10);
     }
 
     /********* CHECK DEADLINE ********/
     if(xTaskGetTickCount()> Deadline)
     {
-        printf("%d: OVERFLOW %s(%d) at Core %d\n",xTaskGetTickCount(),T.Task_Name,T.subnum,get_core_num());
+        printf("%d: OVERFLOW %s(%d) at Core %d\n",counter,T.Task_Name,T.subnum,get_core_num());
         printf("GOOD BYE Core %d", get_core_num());
         return false;
     }
 
-    printf("%d: Complete %s(%d) (< %d)\n",xTaskGetTickCount(),T.Task_Name,T.subnum,Deadline);
+    printf("%d: Complete %s(%d) (< %d)\n",counter,T.Task_Name,T.subnum,Deadline);
     return true;
 }
 
@@ -270,12 +274,10 @@ void Push_core(core_info* P, core_stack* core_stack_ptr)
 core_info* get_min_core(core_stack* core_stack_ptr)
 {
     int min_i = core_stack_ptr->top;
-    // printf("%d \n", min_i);
     for(int i = min_i -1 ; i>=0; i--)
     {
         if(core_stack_ptr->list[i]->Utilization < core_stack_ptr->list[min_i]->Utilization)
         {
-            // printf(" %f <-> %f \n",core_stack_ptr->list[i]->Utilization, core_stack_ptr->list[min_i]->Utilization);
             min_i = i;
         }
     }
@@ -285,24 +287,24 @@ core_info* get_min_core(core_stack* core_stack_ptr)
 
 /***********************CORE***************************/
 
-// 최대공약수 계산 (유클리드 알고리즘)
-uint32_t gcd(uint32_t a, uint32_t b) {
+
+int gcd(int a, int b) {
     while (b != 0) {
-        uint32_t temp = b;
+        int temp = b;
         b = a % b;
         a = temp;
     }
     return a;
 }
 
-// 두 수의 최소공배수 계산
-uint32_t lcm(uint32_t a, uint32_t b) {
+
+int lcm(int a, int b) {
     return (a * b) / gcd(a, b);
 }
 
-// 여러 Task의 주기 배열로 LCM 계산
-uint32_t calculate_lcm(uint32_t periods[]) {
-    uint32_t result = periods[0];
+
+int calculate_lcm(int periods[]) {
+    int result = periods[0];
     for (int i = 1; i < NUM_OF_TASK; i++) {
         result = lcm(result, periods[i]);
     }

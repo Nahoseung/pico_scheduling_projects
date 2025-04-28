@@ -96,9 +96,9 @@ core_info* get_min_core(core_stack* core_stack_ptr);
 
 /************Core**************/
 
-uint32_t gcd(uint32_t a, uint32_t b);
-uint32_t lcm(uint32_t a, uint32_t b);
-uint32_t calculate_lcm(uint32_t periods[]);
+int gcd(int a, int b);
+int lcm(int a, int b);
+int calculate_lcm(int periods[]);
 
 bool Periodic_Job(task_info T, uint16_t Deadline);
 #endif /*TASK_MANAGER_H*/
