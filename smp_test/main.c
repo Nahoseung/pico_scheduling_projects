@@ -54,7 +54,6 @@ bool schedulable = true;
 void MonitorTask(void*pvParameters)
 {
    
-    
     int period_list[NUM_OF_TASK] ;
 
     for(int i=0;i <NUM_OF_TASK;i++)
@@ -216,13 +215,18 @@ int main()
 
 void run_task(task_info Task, TickType_t* LastRequestTime,TickType_t Deadline, bool flag)
 {
+    Deadline = *(LastRequestTime) + Task.Period; // 최신 요청 기준 Deadline 업데이트
+
+    // if(Task.splitted_ptr!= NULL)
+    // {
+    //     printf("%s(2) SUSPENDED\n",Task.Task_Name);
+    //     vTaskSuspend(Task.splitted_ptr);
+    // }
     if(Task.Dependency)
     {
         printf("%d: %s(%d) Suspended \n",xTaskGetTickCount(),Task.Task_Name, Task.subnum);
         vTaskSuspend(Task.my_ptr);
     }
-
-    Deadline = *(LastRequestTime) + Task.Period; // 최신 요청 기준 Deadline 업데이트
 
     /* RUN */
     flag = Periodic_Job(Task,Deadline);
@@ -236,7 +240,6 @@ void run_task(task_info Task, TickType_t* LastRequestTime,TickType_t Deadline, b
 
     if (Task.splitted_ptr != NULL)
     {
-
         vTaskResume(Task.splitted_ptr);
     }
     
@@ -261,6 +264,8 @@ void vTask0(void *pvParameters)
     
     while (true) 
     {
+        
+        
         run_task(Task,&LastRequestTime,Deadline,flag);
     }
 }
@@ -276,12 +281,23 @@ void vTask1(void *pvParameters)
     TickType_t LastRequestTime= xTaskGetTickCount();
     bool flag=false;
 
-    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
 
+    printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
+    
     
     while (true) 
     {
+        // if(Task.Dependency)
+        // {
+        //     printf("%d: %s(%d) Suspended \n",xTaskGetTickCount(),Task.Task_Name, Task.subnum);
+        //     vTaskSuspend(Task.my_ptr);
+        // }
+        // if(Task.splitted_ptr!= NULL)
+        // {
+        //     printf("%s(2) SUSPENDED\n",Task.Task_Name);
+        //     vTaskSuspend(Task.splitted_ptr);
+        // }
         run_task(Task,&LastRequestTime,Deadline,flag);
     }
 }
@@ -299,12 +315,21 @@ void vTask2(void *pvParameters)
 
 
     printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
-
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
     
-     
+    
     while (true) 
     {
+        // if(Task.Dependency)
+        // {
+        //     printf("%d: %s(%d) Suspended \n",xTaskGetTickCount(),Task.Task_Name, Task.subnum);
+        //     vTaskSuspend(Task.my_ptr);
+        // }
+        // if(Task.splitted_ptr!= NULL)
+        // {
+        //     printf("%s(2) SUSPENDED\n",Task.Task_Name);
+        //     vTaskSuspend(Task.splitted_ptr);
+        // }
         run_task(Task,&LastRequestTime,Deadline,flag);
     }
 }
@@ -323,12 +348,21 @@ void vTask3(void *pvParameters)
 
 
     printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
-
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
     
     
     while (true) 
     {
+        // if(Task.Dependency)
+        // {
+        //     printf("%d: %s(%d) Suspended \n",xTaskGetTickCount(),Task.Task_Name, Task.subnum);
+        //     vTaskSuspend(Task.my_ptr);
+        // }
+        // // if(Task.splitted_ptr!= NULL)
+        // {
+        //     printf("%s(2) SUSPENDED\n",Task.Task_Name);
+        //     vTaskSuspend(Task.splitted_ptr);
+        // }
         run_task(Task,&LastRequestTime,Deadline,flag);
     }
 }
@@ -346,13 +380,21 @@ void vTask4(void *pvParameters)
 
 
     printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
-
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
-    
     
     
     while (true) 
     {
+        // if(Task.Dependency)
+        // {
+        //     printf("%d: %s(%d) Suspended \n",xTaskGetTickCount(),Task.Task_Name, Task.subnum);
+        //     vTaskSuspend(Task.my_ptr);
+        // }
+        // if(Task.splitted_ptr!= NULL)
+        // {
+        //     printf("%s(2) SUSPENDED\n",Task.Task_Name);
+        //     vTaskSuspend(Task.splitted_ptr);
+        // }
         run_task(Task,&LastRequestTime,Deadline,flag);
     }
 }
@@ -370,11 +412,21 @@ void vTask5(void *pvParameters)
 
 
     printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
-
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
+    
     
     while (true) 
     {
+        // if(Task.Dependency)
+        // {
+        //     printf("%d: %s(%d) Suspended \n",xTaskGetTickCount(),Task.Task_Name, Task.subnum);
+        //     vTaskSuspend(Task.my_ptr);
+        // }
+        // if(Task.splitted_ptr!= NULL)
+        // {
+        //     printf("%s(2) SUSPENDED\n",Task.Task_Name);
+        //     vTaskSuspend(Task.splitted_ptr);
+        // }
         run_task(Task,&LastRequestTime,Deadline,flag);
     }
 }
@@ -390,12 +442,21 @@ void vTask6(void *pvParameters)
 
 
     printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
-
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
     
     
     while (true) 
     {
+        // if(Task.Dependency)
+        // {
+        //     printf("%d: %s(%d) Suspended \n",xTaskGetTickCount(),Task.Task_Name, Task.subnum);
+        //     vTaskSuspend(Task.my_ptr);
+        // }
+        // if(Task.splitted_ptr!= NULL)
+        // {
+        //     printf("%s(2) SUSPENDED\n",Task.Task_Name);
+        //     vTaskSuspend(Task.splitted_ptr);
+        // }
         run_task(Task,&LastRequestTime,Deadline,flag);
     }
 }
@@ -412,12 +473,21 @@ void vTask7(void *pvParameters)
 
 
     printf("%s(%d) (%d , %d) Utilization : %.3f priority: %d at : CORE %d \n", Task.Task_Name, Task.subnum, Task.Runtime, Task.Period, Task.Utilization,Task.priority,get_core_num());
-
     vTaskDelay(pdMS_TO_TICKS(sync_R)); // delay 1tick for sync
     
     
     while (true) 
     {
+        // if(Task.Dependency)
+        // {
+        //     printf("%d: %s(%d) Suspended \n",xTaskGetTickCount(),Task.Task_Name, Task.subnum);
+        //     vTaskSuspend(Task.my_ptr);
+        // }
+        // if(Task.splitted_ptr!= NULL)
+        // {
+        //     printf("%s(2) SUSPENDED\n",Task.Task_Name);
+        //     vTaskSuspend(Task.splitted_ptr);
+        // }
         run_task(Task,&LastRequestTime,Deadline,flag);
     }
 }

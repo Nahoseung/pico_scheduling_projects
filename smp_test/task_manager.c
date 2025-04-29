@@ -3,17 +3,17 @@
 
 bool Periodic_Job (task_info T, uint16_t Deadline)
 {
-    TickType_t curr_tick = xTaskGetTickCount();
+    // TickType_t curr_tick = xTaskGetTickCount();
 
-    TickType_t end_tick = curr_tick + T.Runtime;
+    TickType_t end_tick = xTaskGetTickCount() + T.Runtime;
     TickType_t counter = 0;
 
-    printf("%d : %s(%d) execute on Core %d Deadline : %d\n", curr_tick, T.Task_Name,T.subnum,get_core_num(),Deadline);
+    printf("%d : %s(%d) execute on Core %d Deadline : %d\n", xTaskGetTickCount(), T.Task_Name,T.subnum,get_core_num(),Deadline);
 
     /********* CHECK DEADLINE ********/
     if(end_tick > Deadline)
     {
-        printf("%d: OVERFLOW %s(%d) at Core %d\n",curr_tick,T.Task_Name,T.subnum,get_core_num());
+        printf("%d: OVERFLOW %s(%d) at Core %d\n",xTaskGetTickCount(),T.Task_Name,T.subnum,get_core_num());
         printf("GOOD BYE Core %d", get_core_num());
         return false;
     }
@@ -22,20 +22,20 @@ bool Periodic_Job (task_info T, uint16_t Deadline)
     for(int i=0; i<T.Runtime;i++)
     {
         // * BUSY COUNTING
-        taskENTER_CRITICAL();
+        // taskENTER_CRITICAL();
         counter = xTaskGetTickCount()+1;
         while(xTaskGetTickCount() < counter)
         {
             __asm volatile("nop");
         }
-        taskEXIT_CRITICAL();
+        // taskEXIT_CRITICAL();
         // sleep_ms(10);
     }
 
     /********* CHECK DEADLINE ********/
     if(xTaskGetTickCount()> Deadline)
     {
-        printf("%d: OVERFLOW %s(%d) at Core %d\n",counter,T.Task_Name,T.subnum,get_core_num());
+        printf("%d: OVERFLOW %s(%d) at Core %d\n",xTaskGetTickCount(),T.Task_Name,T.subnum,get_core_num());
         printf("GOOD BYE Core %d", get_core_num());
         return false;
     }
